@@ -23,8 +23,11 @@
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, updateDoc, getDoc, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // --- REPLACE THIS WITH YOUR OWN FIREBASE CONFIG ---
-        // Get this from console.firebase.google.com
+        // --- STEP 1: CONFIGURE YOUR DATABASE ---
+        // 1. Go to https://console.firebase.google.com
+        // 2. Create a new project.
+        // 3. Add a "Web App" to get your config object.
+        // 4. Paste your config values below:
         const firebaseConfig = {
           apiKey: "AIzaSyBwQiPbjSSjKRPgk7RO-6btjHeva5k7jx8",
           authDomain: "nfldraftpickem.firebaseapp.com",
@@ -34,16 +37,26 @@
           appId: "1:233571025329:web:e78fe3d5c6a991e1a2fd90",
           measurementId: "G-2M82MGXNX6"
         };
-
-        // Internal setup (using placeholder if config is empty for preview)
+        // Internal setup
         let app, auth, db, currentAppId;
+        let configError = false;
+        let connectionError = null;
+
         try {
-            app = initializeApp(firebaseConfig.apiKey ? firebaseConfig : JSON.parse(window.__firebase_config || '{}'));
-            auth = getAuth(app);
-            db = getFirestore(app);
-            currentAppId = window.__app_id || 'nfl-draft-duel-2026';
+            const isConfigEmpty = !firebaseConfig.apiKey;
+            const envConfig = window.__firebase_config ? JSON.parse(window.__firebase_config) : null;
+            
+            if (isConfigEmpty && !envConfig) {
+                configError = true;
+            } else {
+                app = initializeApp(isConfigEmpty ? envConfig : firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+                currentAppId = window.__app_id || 'nfl-draft-duel-2026';
+            }
         } catch (e) {
-            console.error("Firebase Init Error: Ensure you have provided a valid config.", e);
+            console.error("Firebase Init Error:", e);
+            configError = true;
         }
 
         const DRAFT_ORDER = [
@@ -86,12 +99,23 @@
 
         // --- FIREBASE LOGIC ---
         async function init() {
+            if (configError) {
+                render();
+                return;
+            }
+
             onAuthStateChanged(auth, async (u) => {
                 if (u) {
                     setState({ user: u });
                     if (state.roomCode) syncRoomData();
                 } else {
-                    await signInAnonymously(auth);
+                    try {
+                        await signInAnonymously(auth);
+                    } catch (err) {
+                        console.error("Auth Error:", err);
+                        connectionError = "Authentication Failed. Please enable 'Anonymous' sign-in in the Firebase Console (Build > Authentication > Sign-in method).";
+                        render();
+                    }
                 }
             });
         }
@@ -99,7 +123,6 @@
         let unsubRoom, unsubPlayers;
         async function syncRoomData() {
             if (!state.user || !state.roomCode) return;
-            const fullAppId = `${currentAppId}-${state.roomCode}`;
             
             // Sync Game State
             const roomRef = doc(db, 'artifacts', currentAppId, 'public', 'data', 'rooms', state.roomCode);
@@ -107,8 +130,17 @@
                 if (snap.exists()) {
                     setState({ gameState: snap.data() });
                 } else {
-                    setDoc(roomRef, { currentPickIndex: 0, commishId: state.user.uid, results: [] });
+                    setDoc(roomRef, { currentPickIndex: 0, commishId: state.user.uid, results: [] })
+                      .catch(e => {
+                          console.error("Firestore Write Error:", e);
+                          connectionError = "Database Access Denied. Ensure Firestore Rules are set to 'allow read, write' for testing.";
+                          render();
+                      });
                 }
+            }, (err) => {
+                console.error("Room Sync Error:", err);
+                connectionError = "Firestore Error: " + err.message;
+                render();
             });
 
             // Sync Players
@@ -118,20 +150,30 @@
                 setState({ allPlayers: players });
                 const me = players.find(p => p.uid === state.user.uid);
                 if (me && !state.tempName) setState({ tempName: me.name });
+            }, (err) => {
+                console.error("Players Sync Error:", err);
+                connectionError = "Firestore Error: " + err.message;
+                render();
             });
 
             // Register me
             const myDocId = `${state.roomCode}_${state.user.uid}`;
             const myRef = doc(db, 'artifacts', currentAppId, 'public', 'data', 'players', myDocId);
-            const mySnap = await getDoc(myRef);
-            if (!mySnap.exists()) {
-                await setDoc(myRef, { 
-                    uid: state.user.uid, 
-                    roomCode: state.roomCode, 
-                    name: `Fan ${state.user.uid.slice(0, 4)}`, 
-                    score: 0, 
-                    predictions: {} 
-                });
+            try {
+                const mySnap = await getDoc(myRef);
+                if (!mySnap.exists()) {
+                    await setDoc(myRef, { 
+                        uid: state.user.uid, 
+                        roomCode: state.roomCode, 
+                        name: `Fan ${state.user.uid.slice(0, 4)}`, 
+                        score: 0, 
+                        predictions: {} 
+                    });
+                }
+            } catch (e) {
+                console.error("Registration Error:", e);
+                connectionError = "Registration Failed: " + e.message;
+                render();
             }
         }
 
@@ -151,176 +193,3 @@
         };
 
         window.leaveRoom = () => {
-            if (unsubRoom) unsubRoom();
-            if (unsubPlayers) unsubPlayers();
-            localStorage.removeItem('draft_room_code');
-            setState({ roomCode: "", gameState: null, allPlayers: [] });
-        };
-
-        window.lockPick = async (pick) => {
-            const docId = `${state.roomCode}_${state.user.uid}`;
-            const ref = doc(db, 'artifacts', currentAppId, 'public', 'data', 'players', docId);
-            await updateDoc(ref, { [`predictions.${state.gameState.currentPickIndex}`]: pick });
-        };
-
-        window.resolvePick = async (player) => {
-            const idx = state.gameState.currentPickIndex;
-            const correctOnes = state.allPlayers.filter(p => p.predictions?.[idx] === player);
-            const isLoneWinner = correctOnes.length === 1;
-
-            if (isLoneWinner) {
-                const docId = `${state.roomCode}_${correctOnes[0].uid}`;
-                const ref = doc(db, 'artifacts', currentAppId, 'public', 'data', 'players', docId);
-                await updateDoc(ref, { score: (correctOnes[0].score || 0) + 1 });
-            }
-
-            const roomRef = doc(db, 'artifacts', currentAppId, 'public', 'data', 'rooms', state.roomCode);
-            await updateDoc(roomRef, {
-                currentPickIndex: idx + 1,
-                results: [...state.gameState.results, {
-                    pick: idx + 1,
-                    player: player,
-                    winner: isLoneWinner ? correctOnes[0].name : "No Points"
-                }]
-            });
-        };
-
-        // --- RENDERER ---
-        function render() {
-            const root = document.getElementById('root');
-            
-            if (!state.user) {
-                root.innerHTML = `<div class="flex items-center justify-center h-screen uppercase text-xs tracking-widest font-bold">Connecting to HQ...</div>`;
-                return;
-            }
-
-            if (!state.roomCode) {
-                root.innerHTML = `
-                    <div class="flex flex-col items-center justify-center min-h-screen p-6 text-center space-y-8">
-                        <div class="bg-indigo-600 p-6 rounded-3xl shadow-2xl shadow-indigo-500/20 rotate-3">
-                            <i data-lucide="zap" class="text-white fill-white w-12 h-12"></i>
-                        </div>
-                        <div>
-                            <h1 class="text-5xl font-black italic uppercase tracking-tighter">Draft Duel <span class="text-indigo-400">2026</span></h1>
-                            <p class="text-slate-500 font-medium">Public Multiplayer Mode</p>
-                        </div>
-                        <div class="w-full max-w-xs space-y-4">
-                            <button onclick="createRoom()" class="w-full bg-indigo-600 hover:bg-indigo-500 py-5 rounded-2xl font-black uppercase tracking-widest transition-all">Create Room</button>
-                            <div class="flex gap-2">
-                                <input id="joinInput" placeholder="CODE" class="flex-grow bg-slate-900 border border-slate-800 rounded-2xl px-4 py-4 text-center font-mono font-bold tracking-widest outline-none focus:ring-2 ring-indigo-500">
-                                <button onclick="joinRoom(document.getElementById('joinInput').value)" class="bg-slate-800 px-6 rounded-2xl font-black"><i data-lucide="log-in"></i></button>
-                            </div>
-                        </div>
-                    </div>
-                `;
-                lucide.createIcons();
-                return;
-            }
-
-            const cur = DRAFT_ORDER[state.gameState?.currentPickIndex] || { team: "Draft Over", id: "END" };
-            const me = state.allPlayers.find(p => p.uid === state.user.uid);
-            const hasPicked = me?.predictions?.[state.gameState?.currentPickIndex];
-
-            root.innerHTML = `
-                <div class="max-w-5xl mx-auto p-4 md:p-8 space-y-6">
-                    <header class="flex justify-between items-center mb-8">
-                        <div class="flex items-center gap-3">
-                             <div class="bg-indigo-600 p-2 rounded-lg"><i data-lucide="zap" class="w-5 h-5 text-white fill-white"></i></div>
-                             <div>
-                                <h1 class="font-black uppercase italic text-lg">Draft Duel</h1>
-                                <div class="flex items-center gap-2 text-[10px] text-slate-500 font-bold">
-                                    <span class="bg-indigo-500/10 text-indigo-400 px-2 rounded uppercase tracking-widest">Lobby: ${state.roomCode}</span>
-                                    <button onclick="leaveRoom()" class="hover:text-rose-400 uppercase">Leave</button>
-                                </div>
-                             </div>
-                        </div>
-                        <div class="flex bg-slate-900 p-1 rounded-xl border border-slate-800">
-                            <button onclick="setState({view: 'game'})" class="px-6 py-2 rounded-lg text-xs font-bold uppercase tracking-widest ${state.view === 'game' ? 'bg-indigo-600 text-white' : 'text-slate-500'}">Game</button>
-                            <button onclick="setState({view: 'standings'})" class="px-6 py-2 rounded-lg text-xs font-bold uppercase tracking-widest ${state.view === 'standings' ? 'bg-indigo-600 text-white' : 'text-slate-500'}">Standings</button>
-                        </div>
-                    </header>
-
-                    ${state.view === 'game' ? `
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <div class="md:col-span-2 space-y-6">
-                                <div class="bg-gradient-to-br from-slate-900 to-slate-800 border border-slate-700 p-8 rounded-3xl relative overflow-hidden shadow-2xl">
-                                    <div class="relative z-10">
-                                        <div class="mb-2 inline-block px-3 py-1 bg-indigo-500/10 border border-indigo-500/20 rounded-full text-indigo-400 text-[10px] font-bold uppercase">Pick #${cur.id}</div>
-                                        <h2 class="text-4xl font-black uppercase italic mb-1">${cur.team}</h2>
-                                        <p class="text-xs text-slate-500 italic mb-8">Needs: ${cur.needs || '---'}</p>
-
-                                        ${cur.id !== "END" ? (
-                                            hasPicked ? `
-                                                <div class="bg-emerald-500/10 border border-emerald-500/20 p-5 rounded-2xl flex items-center gap-4">
-                                                    <i data-lucide="check-circle" class="text-emerald-500"></i>
-                                                    <div>
-                                                        <p class="text-[10px] font-black text-emerald-500 uppercase tracking-widest">Locked In</p>
-                                                        <p class="font-bold text-lg">${hasPicked}</p>
-                                                    </div>
-                                                </div>
-                                            ` : `
-                                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4 max-h-60 overflow-y-auto pr-2 custom-scrollbar">
-                                                    ${PROSPECTS.map(p => `<button onclick="lockPick('${p}')" class="text-left px-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-xs font-bold hover:border-slate-500 transition-all">${p}</button>`).join('')}
-                                                </div>
-                                            `
-                                        ) : `<div class="text-center font-black text-slate-600 py-10 uppercase tracking-widest">Draft Concluded</div>`}
-                                    </div>
-                                </div>
-
-                                ${state.gameState?.commishId === state.user.uid && cur.id !== "END" ? `
-                                    <div class="bg-slate-900 border-2 border-dashed border-slate-800 p-6 rounded-3xl">
-                                        <h3 class="text-xs font-black text-indigo-400 uppercase tracking-widest mb-4 flex items-center gap-2"><i data-lucide="shield" class="w-4 h-4"></i> Commish Resolution</h3>
-                                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-40 overflow-y-auto pr-2 custom-scrollbar">
-                                            ${PROSPECTS.map(p => `<button onclick="resolvePick('${p}')" class="text-left px-3 py-2 bg-indigo-500/5 border border-indigo-500/20 rounded-lg text-[10px] font-bold text-indigo-300 uppercase">${p}</button>`).join('')}
-                                        </div>
-                                    </div>
-                                ` : ''}
-                            </div>
-
-                            <div class="space-y-6">
-                                <div class="bg-slate-900 border border-slate-800 p-6 rounded-3xl shadow-xl">
-                                    <h4 class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-6">Lobby Members (${state.allPlayers.length})</h4>
-                                    <div class="space-y-4">
-                                        ${state.allPlayers.sort((a,b)=>b.score-a.score).map(p => `
-                                            <div class="flex justify-between items-center">
-                                                <div class="flex items-center gap-2">
-                                                    <div class="w-2 h-2 rounded-full ${p.predictions?.[state.gameState?.currentPickIndex] ? 'bg-emerald-500' : 'bg-slate-700'}"></div>
-                                                    <span class="text-sm font-bold ${p.uid === state.user.uid ? 'text-indigo-400' : ''}">${p.name}</span>
-                                                </div>
-                                                <span class="font-black text-indigo-400">${p.score}</span>
-                                            </div>
-                                        `).join('')}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    ` : `
-                        <div class="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl">
-                             <div class="p-8 bg-indigo-900/20 border-b border-slate-800">
-                                <h2 class="text-3xl font-black italic uppercase flex items-center gap-3"><i data-lucide="crown" class="text-yellow-500"></i> Leaderboard</h2>
-                             </div>
-                             <div class="p-8 space-y-8">
-                                <table class="w-full text-left">
-                                    <tr class="text-[10px] font-black text-slate-500 uppercase tracking-widest border-b border-slate-800">
-                                        <th class="pb-2">Player</th>
-                                        <th class="pb-2 text-right">Points</th>
-                                    </tr>
-                                    ${state.allPlayers.sort((a,b)=>b.score-a.score).map(p => `
-                                        <tr class="border-b border-slate-800/50">
-                                            <td class="py-5 font-bold">${p.name}</td>
-                                            <td class="py-5 text-right font-black text-2xl text-indigo-400">${p.score}</td>
-                                        </tr>
-                                    `).join('')}
-                                </table>
-                             </div>
-                        </div>
-                    `}
-                </div>
-            `;
-            lucide.createIcons();
-        }
-
-        init();
-    </script>
-</body>
-</html>
