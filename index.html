@@ -138,10 +138,11 @@
             tempName: ""
         };
 
-        function setState(newState) {
+        // Attach setState to window so it can be called from onclick handlers in the HTML strings
+        window.setState = function(newState) {
             state = { ...state, ...newState };
             render();
-        }
+        };
 
         async function init() {
             if (setupError) {
@@ -152,7 +153,7 @@
             onAuthStateChanged(auth, async (u) => {
                 if (u) {
                     clearTimeout(timeout);
-                    setState({ user: u });
+                    window.setState({ user: u });
                     if (state.roomCode) syncRoomData();
                 } else {
                     try {
@@ -173,11 +174,11 @@
             const roomRef = doc(db, 'artifacts', currentAppId, 'public', 'data', 'rooms', state.roomCode);
             unsubRoom = onSnapshot(roomRef, (snap) => {
                 if (snap.exists()) {
-                    setState({ gameState: snap.data() });
+                    window.setState({ gameState: snap.data() });
                 } else {
                     setDoc(roomRef, { currentPickIndex: 0, commishId: state.user.uid, results: [] })
                       .then(() => {
-                        setState({ gameState: { currentPickIndex: 0, commishId: state.user.uid, results: [] } });
+                        window.setState({ gameState: { currentPickIndex: 0, commishId: state.user.uid, results: [] } });
                       })
                       .catch(e => { setupError = "FIRESTORE_DENIED"; render(); });
                 }
@@ -186,10 +187,9 @@
             const playersRef = collection(db, 'artifacts', currentAppId, 'public', 'data', 'players');
             unsubPlayers = onSnapshot(playersRef, (snap) => {
                 const players = snap.docs.map(d => d.data()).filter(p => p.roomCode === state.roomCode);
-                setState({ allPlayers: players });
+                window.setState({ allPlayers: players });
                 const me = players.find(p => p.uid === state.user.uid);
-                // Only update tempName if not already in editing mode to avoid overwriting typed text
-                if (me && !state.isEditingName) setState({ tempName: me.name });
+                if (me && !state.isEditingName) window.setState({ tempName: me.name });
             }, (err) => { setupError = "PERMISSION_DENIED"; render(); });
 
             const myDocId = `${state.roomCode}_${state.user.uid}`;
@@ -205,14 +205,14 @@
         window.createRoom = () => {
             const code = Math.random().toString(36).substring(2, 6).toUpperCase();
             localStorage.setItem('draft_room_code', code);
-            setState({ roomCode: code, gameState: null });
+            window.setState({ roomCode: code, gameState: null });
             syncRoomData();
         };
 
         window.joinRoom = (code) => {
             if (!code) return;
             localStorage.setItem('draft_room_code', code.toUpperCase());
-            setState({ roomCode: code.toUpperCase(), gameState: null });
+            window.setState({ roomCode: code.toUpperCase(), gameState: null });
             syncRoomData();
         };
 
@@ -220,7 +220,7 @@
             if (unsubRoom) unsubRoom();
             if (unsubPlayers) unsubPlayers();
             localStorage.removeItem('draft_room_code');
-            setState({ roomCode: "", gameState: null, allPlayers: [] });
+            window.setState({ roomCode: "", gameState: null, allPlayers: [] });
         };
 
         window.lockPick = async (pick) => {
@@ -251,7 +251,7 @@
                     winner: isLoneWinner ? correctOnes[0].name : (correctOnes.length > 1 ? "Shared (0 Pts)" : "None")
                 }]
             });
-            setState({ myPrediction: "" });
+            window.setState({ myPrediction: "" });
         };
 
         window.updateName = async () => {
@@ -263,17 +263,16 @@
             const ref = doc(db, 'artifacts', currentAppId, 'public', 'data', 'players', docId);
             
             try {
-                // Optimistic UI update before server response
-                setState({ isEditingName: false }); 
+                window.setState({ isEditingName: false }); 
                 await updateDoc(ref, { name: newName });
             } catch (e) {
                 console.error("Update Name Error:", e);
-                // Re-open if failed
-                setState({ isEditingName: true }); 
+                window.setState({ isEditingName: true }); 
             }
         };
 
-        function render() {
+        // Render attached to window so it stays consistent
+        window.render = function() {
             const root = document.getElementById('root');
             
             if (setupError) {
@@ -328,7 +327,6 @@
 
             const draftedPlayers = (state.gameState.results || []).map(r => r.player);
             const availableProspects = PROSPECTS.filter(p => !draftedPlayers.includes(p));
-
             const cur = DRAFT_ORDER[state.gameState.currentPickIndex] || { team: "Draft Complete", id: "END" };
             const me = state.allPlayers.find(p => p.uid === state.user.uid);
             const hasPicked = me?.predictions?.[state.gameState.currentPickIndex];
@@ -347,8 +345,8 @@
                              </div>
                         </div>
                         <nav class="flex bg-slate-900 p-1.5 rounded-2xl border border-slate-800 shadow-inner">
-                            <button onclick="setState({view: 'game'})" class="px-8 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${state.view === 'game' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-200'}">Game</button>
-                            <button onclick="setState({view: 'standings'})" class="px-8 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${state.view === 'standings' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-200'}">Standings</button>
+                            <button onclick="window.setState({view: 'game'})" class="px-8 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${state.view === 'game' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-200'}">Game</button>
+                            <button onclick="window.setState({view: 'standings'})" class="px-8 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${state.view === 'standings' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-200'}">Standings</button>
                         </nav>
                     </header>
 
@@ -406,7 +404,7 @@
                                 <div class="bg-slate-900 border border-slate-800 p-6 rounded-[2rem] shadow-xl h-fit">
                                     <div class="flex justify-between items-center mb-6">
                                         <h4 class="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2"><i data-lucide="users" class="w-4 h-4"></i> Party (${state.allPlayers.length})</h4>
-                                        <button onclick="setState({isEditingName: !state.isEditingName})" class="text-[10px] text-indigo-400 font-black uppercase hover:text-indigo-300 transition-colors">
+                                        <button onclick="window.setState({isEditingName: !state.isEditingName})" class="text-[10px] text-indigo-400 font-black uppercase hover:text-indigo-300 transition-colors">
                                             ${state.isEditingName ? 'Cancel' : 'Edit Name'}
                                         </button>
                                     </div>
