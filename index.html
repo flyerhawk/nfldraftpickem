@@ -127,7 +127,6 @@
             "Joenel Aguero (S, Georgia)"
         ];
 
-        // GLOBAL STATE ATTACHMENT
         window.state = {
             user: null,
             roomCode: localStorage.getItem('draft_room_code') || "",
@@ -176,9 +175,9 @@
                 if (snap.exists()) {
                     window.setState({ gameState: snap.data() });
                 } else {
-                    setDoc(roomRef, { currentPickIndex: 0, commishId: window.state.user.uid, results: [] })
+                    setDoc(roomRef, { currentPickIndex: 0, commishId: window.state.user.uid, results: [], carryOver: 0 })
                       .then(() => {
-                        window.setState({ gameState: { currentPickIndex: 0, commishId: window.state.user.uid, results: [] } });
+                        window.setState({ gameState: { currentPickIndex: 0, commishId: window.state.user.uid, results: [], carryOver: 0 } });
                       })
                       .catch(e => { setupError = "FIRESTORE_DENIED"; window.render(); });
                 }
@@ -234,21 +233,38 @@
             const idx = window.state.gameState.currentPickIndex;
             const correctOnes = window.state.allPlayers.filter(p => p.predictions?.[idx] === player);
             const isLoneWinner = correctOnes.length === 1;
+            const currentCarry = window.state.gameState.carryOver || 0;
+            const roundValue = 1 + currentCarry;
+
+            let winnerMsg = "";
+            let nextCarry = roundValue; // Default to carrying over the whole pot if no winner
 
             if (isLoneWinner) {
-                const docId = `${window.state.roomCode}_${correctOnes[0].uid}`;
+                const winner = correctOnes[0];
+                const docId = `${window.state.roomCode}_${winner.uid}`;
                 const ref = doc(db, 'artifacts', currentAppId, 'public', 'data', 'players', docId);
-                const pData = window.state.allPlayers.find(p => p.uid === correctOnes[0].uid);
-                await updateDoc(ref, { score: (pData.score || 0) + 1 });
+                const pData = window.state.allPlayers.find(p => p.uid === winner.uid);
+                await updateDoc(ref, { score: (pData.score || 0) + roundValue });
+                
+                winnerMsg = `${winner.name} (+${roundValue} Pts)`;
+                nextCarry = 0; // Pot cleared
+            } else if (correctOnes.length > 1) {
+                winnerMsg = "Shared (Pot Carries)";
+                // nextCarry remains roundValue
+            } else {
+                winnerMsg = "None (Pot Carries)";
+                // nextCarry remains roundValue
             }
 
             const roomRef = doc(db, 'artifacts', currentAppId, 'public', 'data', 'rooms', window.state.roomCode);
             await updateDoc(roomRef, {
                 currentPickIndex: idx + 1,
+                carryOver: nextCarry,
                 results: [...window.state.gameState.results, {
                     pick: idx + 1,
                     player: player,
-                    winner: isLoneWinner ? correctOnes[0].name : (correctOnes.length > 1 ? "Shared (0 Pts)" : "None")
+                    winner: winnerMsg,
+                    wasLone: isLoneWinner
                 }]
             });
             window.setState({ myPrediction: "" });
@@ -329,9 +345,10 @@
             const cur = DRAFT_ORDER[window.state.gameState.currentPickIndex] || { team: "Draft Complete", id: "END" };
             const me = window.state.allPlayers.find(p => p.uid === window.state.user.uid);
             const hasPicked = me?.predictions?.[window.state.gameState.currentPickIndex];
+            const potValue = 1 + (window.state.gameState.carryOver || 0);
 
             root.innerHTML = `
-                <div class="max-w-5xl mx-auto p-4 md:p-8 space-y-6">
+                <div class="max-w-5xl mx-auto p-4 md:p-8 space-y-6 text-left">
                     <header class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
                         <div class="flex items-center gap-4">
                              <div class="bg-indigo-600 p-3 rounded-2xl shadow-lg shadow-indigo-500/20 rotate-3"><i data-lucide="zap" class="w-6 h-6 text-white fill-white"></i></div>
@@ -355,9 +372,15 @@
                                 <div class="bg-gradient-to-br from-slate-900 to-slate-800 border border-slate-700 p-10 rounded-[2.5rem] relative overflow-hidden shadow-2xl">
                                     <div class="absolute -top-12 -right-12 opacity-[0.03] rotate-12"><i data-lucide="clock" class="w-64 h-64"></i></div>
                                     <div class="relative z-10">
-                                        <div class="mb-3 inline-flex items-center gap-2 px-3 py-1 bg-indigo-500/10 border border-indigo-500/20 rounded-full text-indigo-400 text-[10px] font-black uppercase tracking-widest">
-                                            <span class="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></span> Now On The Clock
+                                        <div class="flex justify-between items-start mb-6">
+                                            <div class="inline-flex items-center gap-2 px-3 py-1 bg-indigo-500/10 border border-indigo-500/20 rounded-full text-indigo-400 text-[10px] font-black uppercase tracking-widest">
+                                                <span class="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></span> Now On The Clock
+                                            </div>
+                                            <div class="bg-amber-500 px-4 py-1 rounded-full text-black text-[10px] font-black uppercase tracking-widest shadow-lg shadow-amber-500/20">
+                                                Round Value: ${potValue} Pts
+                                            </div>
                                         </div>
+                                        
                                         <h2 class="text-5xl font-black uppercase italic mb-2 tracking-tighter">${cur.team}</h2>
                                         <div class="flex items-center gap-4 text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-10">
                                             <span>Pick #${cur.id}</span>
@@ -375,9 +398,9 @@
                                                     </div>
                                                 </div>
                                             ` : `
-                                                <div class="space-y-4">
-                                                    <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">Select Your Prospect (${availableProspects.length} remaining):</p>
-                                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6 max-h-[300px] overflow-y-auto pr-3 custom-scrollbar">
+                                                <div class="space-y-4 text-left">
+                                                    <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4 text-left">Select Your Prospect (${availableProspects.length} remaining):</p>
+                                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6 max-h-[300px] overflow-y-auto pr-3 custom-scrollbar text-left">
                                                         ${availableProspects.map(p => `<button onclick="window.lockPick('${p}')" class="text-left px-5 py-4 bg-slate-800 border border-slate-700 rounded-2xl text-sm font-bold hover:border-indigo-500 hover:bg-slate-750 transition-all group flex items-center justify-between"><span>${p}</span> <i data-lucide="chevron-right" class="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity"></i></button>`).join('')}
                                                     </div>
                                                 </div>
@@ -387,12 +410,12 @@
                                 </div>
 
                                 ${window.state.gameState.commishId === window.state.user.uid && cur.id !== "END" ? `
-                                    <div class="bg-slate-900 border-2 border-dashed border-slate-800 p-8 rounded-[2rem] shadow-lg">
+                                    <div class="bg-slate-900 border-2 border-dashed border-slate-800 p-8 rounded-[2rem] shadow-lg text-left">
                                         <div class="flex items-center justify-between mb-6">
                                             <h3 class="text-xs font-black text-indigo-400 uppercase tracking-widest flex items-center gap-2"><i data-lucide="shield" class="w-4 h-4"></i> Commish Console</h3>
-                                            <span class="text-[10px] text-slate-600 font-bold italic uppercase tracking-tighter text-right">Resolve Pick and Filter Player from List</span>
+                                            <span class="text-[10px] text-slate-600 font-bold italic uppercase tracking-tighter text-right">Awarding ${potValue} Points</span>
                                         </div>
-                                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
+                                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar text-left">
                                             ${availableProspects.map(p => `<button onclick="window.resolvePick('${p}')" class="text-left px-4 py-2.5 bg-indigo-500/5 border border-indigo-500/10 hover:bg-indigo-500/10 text-indigo-300 rounded-xl text-[10px] font-black uppercase transition-all">${p}</button>`).join('')}
                                         </div>
                                     </div>
@@ -409,7 +432,7 @@
                                     </div>
                                     
                                     ${window.state.isEditingName ? `
-                                        <div class="mb-6 space-y-2 animate-in slide-in-from-top-2">
+                                        <div class="mb-6 space-y-2 animate-in slide-in-from-top-2 text-left">
                                             <input id="nameInput" autofocus placeholder="ENTER NAME" 
                                                    class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2 text-xs font-bold focus:ring-1 ring-indigo-500 outline-none text-white" 
                                                    value="${window.state.tempName || me?.name || ''}"
@@ -418,12 +441,12 @@
                                         </div>
                                     ` : ''}
 
-                                    <div class="space-y-4">
+                                    <div class="space-y-4 text-left">
                                         ${window.state.allPlayers.sort((a,b)=>b.score-a.score).map(p => `
-                                            <div class="flex justify-between items-center group">
+                                            <div class="flex justify-between items-center group text-left">
                                                 <div class="flex items-center gap-3">
                                                     <div class="w-2.5 h-2.5 rounded-full transition-all duration-700 ${p.predictions?.[window.state.gameState.currentPickIndex] ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-slate-700 animate-pulse'}"></div>
-                                                    <div class="flex flex-col">
+                                                    <div class="flex flex-col text-left">
                                                         <span class="text-sm font-bold ${p.uid === window.state.user.uid ? 'text-indigo-400' : 'text-slate-300'}">${p.name} ${p.uid === window.state.user.uid ? '(You)' : ''}</span>
                                                         <span class="text-[8px] font-black text-slate-600 uppercase tracking-tighter">${p.predictions?.[window.state.gameState.currentPickIndex] ? 'Locked' : 'Choosing...'}</span>
                                                     </div>
@@ -434,18 +457,18 @@
                                     </div>
                                 </div>
                                 
-                                <div class="bg-indigo-600/5 border border-indigo-500/10 p-6 rounded-[2rem]">
-                                    <h5 class="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-2 flex items-center gap-2"><i data-lucide="info" class="w-3 h-3"></i> Lone Wolf Scoring</h5>
-                                    <p class="text-[10px] text-slate-500 leading-relaxed font-medium">Points are <span class="text-indigo-300 font-bold underline">ONLY</span> awarded if exactly one person in the room guesses correctly.</p>
+                                <div class="bg-indigo-600/5 border border-indigo-500/10 p-6 rounded-[2rem] text-left">
+                                    <h5 class="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-2 flex items-center gap-2"><i data-lucide="info" class="w-3 h-3"></i> Lone Wolf Progressive</h5>
+                                    <p class="text-[10px] text-slate-500 leading-relaxed font-medium">Points only award to a <span class="text-indigo-300 font-bold underline">SINGLE</span> winner. If 0 or multiple people are correct, the pot carries over to the next pick!</p>
                                 </div>
                             </div>
                         </div>
                     ` : `
-                        <div class="bg-slate-900 border border-slate-800 rounded-[2.5rem] overflow-hidden shadow-2xl animate-in slide-in-from-bottom-8">
-                             <div class="p-10 bg-gradient-to-r from-indigo-900/20 to-transparent border-b border-slate-800">
+                        <div class="bg-slate-900 border border-slate-800 rounded-[2.5rem] overflow-hidden shadow-2xl animate-in slide-in-from-bottom-8 text-left">
+                             <div class="p-10 bg-gradient-to-r from-indigo-900/20 to-transparent border-b border-slate-800 text-left">
                                 <h2 class="text-4xl font-black italic uppercase tracking-tighter flex items-center gap-4 text-left"><i data-lucide="crown" class="text-yellow-500 w-10 h-10"></i> Season Standings</h2>
                              </div>
-                             <div class="p-10 space-y-12">
+                             <div class="p-10 space-y-12 text-left">
                                 <table class="w-full text-left">
                                     <thead>
                                         <tr class="text-[10px] font-black text-slate-500 uppercase tracking-widest border-b border-slate-800 pb-4">
@@ -468,11 +491,11 @@
                                 <div class="space-y-6 text-left">
                                     <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] border-l-2 border-indigo-500 pl-4">Official Draft History</h4>
                                     <div class="grid gap-4">
-                                        ${window.state.gameState.results?.length === 0 ? `
+                                        ${state.gameState.results?.length === 0 ? `
                                             <div class="py-12 text-center border-2 border-dashed border-slate-800 rounded-3xl text-slate-700 font-black uppercase tracking-widest text-[10px]">Waiting for pick #1...</div>
-                                        ` : window.state.gameState.results?.slice().reverse().map((res, i) => `
+                                        ` : state.gameState.results?.slice().reverse().map((res, i) => `
                                             <div class="bg-slate-950 p-6 rounded-3xl flex justify-between items-center border border-slate-800 group hover:border-slate-700 transition-all">
-                                                <div class="flex items-center gap-6">
+                                                <div class="flex items-center gap-6 text-left">
                                                     <div class="text-center">
                                                         <p class="text-[8px] font-black text-slate-600 uppercase tracking-tighter">Pick</p>
                                                         <p class="font-black text-slate-500 text-xl italic">#${res.pick}</p>
@@ -483,8 +506,8 @@
                                                     </div>
                                                 </div>
                                                 <div class="text-right">
-                                                    <p class="text-[8px] font-black text-slate-600 uppercase tracking-widest mb-1">Lone Winner</p>
-                                                    <p class="text-xs font-black ${res.winner.includes('None') || res.winner.includes('Multiple') || res.winner.includes('Shared') ? 'text-slate-600 italic' : 'text-emerald-400'}">${res.winner}</p>
+                                                    <p class="text-[8px] font-black text-slate-600 uppercase tracking-widest mb-1">Result</p>
+                                                    <p class="text-xs font-black ${res.wasLone ? 'text-emerald-400' : 'text-slate-600 italic'}">${res.winner}</p>
                                                 </div>
                                             </div>
                                         `).join('')}
