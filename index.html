@@ -138,7 +138,6 @@
             tempName: ""
         };
 
-        // Attach setState to window so it can be called from onclick handlers in the HTML strings
         window.setState = function(newState) {
             state = { ...state, ...newState };
             render();
@@ -271,7 +270,6 @@
             }
         };
 
-        // Render attached to window so it stays consistent
         window.render = function() {
             const root = document.getElementById('root');
             
@@ -303,10 +301,10 @@
                             <p class="text-slate-500 font-bold uppercase text-[10px] tracking-[0.3em] mt-2">Public Multiplayer Party</p>
                         </div>
                         <div class="w-full max-w-xs space-y-4 text-left">
-                            <button onclick="createRoom()" class="w-full bg-indigo-600 hover:bg-indigo-500 py-5 rounded-2xl font-black uppercase tracking-widest transition-all shadow-xl shadow-indigo-500/10">Create Room</button>
+                            <button onclick="window.createRoom()" class="w-full bg-indigo-600 hover:bg-indigo-500 py-5 rounded-2xl font-black uppercase tracking-widest transition-all shadow-xl shadow-indigo-500/10">Create Room</button>
                             <div class="flex gap-2">
                                 <input id="joinInput" placeholder="4-CHAR CODE" class="flex-grow bg-slate-900 border border-slate-800 rounded-2xl px-4 py-4 text-center font-mono font-bold tracking-[0.4em] outline-none focus:ring-2 ring-indigo-500 transition-all uppercase">
-                                <button onclick="joinRoom(document.getElementById('joinInput').value)" class="bg-slate-800 px-6 rounded-2xl font-black hover:bg-slate-700 transition-all"><i data-lucide="log-in" class="w-5 h-5"></i></button>
+                                <button onclick="window.joinRoom(document.getElementById('joinInput').value)" class="bg-slate-800 px-6 rounded-2xl font-black hover:bg-slate-700 transition-all"><i data-lucide="log-in" class="w-5 h-5"></i></button>
                             </div>
                         </div>
                     </div>
@@ -340,7 +338,7 @@
                                 <h1 class="font-black uppercase italic text-xl tracking-tighter">Draft Duel <span class="text-indigo-400">2026</span></h1>
                                 <div class="flex items-center gap-3 text-[10px] text-slate-500 font-black tracking-widest">
                                     <span class="bg-indigo-500/10 text-indigo-400 px-2 py-0.5 rounded uppercase">Lobby: ${state.roomCode}</span>
-                                    <button onclick="leaveRoom()" class="hover:text-rose-400 uppercase transition-colors">Exit Room</button>
+                                    <button onclick="window.leaveRoom()" class="hover:text-rose-400 uppercase transition-colors">Exit Room</button>
                                 </div>
                              </div>
                         </div>
@@ -379,7 +377,7 @@
                                                 <div class="space-y-4">
                                                     <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">Select Your Prospect (${availableProspects.length} remaining):</p>
                                                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6 max-h-[300px] overflow-y-auto pr-3 custom-scrollbar">
-                                                        ${availableProspects.map(p => `<button onclick="lockPick('${p}')" class="text-left px-5 py-4 bg-slate-800 border border-slate-700 rounded-2xl text-sm font-bold hover:border-indigo-500 hover:bg-slate-750 transition-all group flex items-center justify-between"><span>${p}</span> <i data-lucide="chevron-right" class="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity"></i></button>`).join('')}
+                                                        ${availableProspects.map(p => `<button onclick="window.lockPick('${p}')" class="text-left px-5 py-4 bg-slate-800 border border-slate-700 rounded-2xl text-sm font-bold hover:border-indigo-500 hover:bg-slate-750 transition-all group flex items-center justify-between"><span>${p}</span> <i data-lucide="chevron-right" class="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity"></i></button>`).join('')}
                                                     </div>
                                                 </div>
                                             `
@@ -394,7 +392,7 @@
                                             <span class="text-[10px] text-slate-600 font-bold italic uppercase tracking-tighter text-right">Resolve Pick and Filter Player from List</span>
                                         </div>
                                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
-                                            ${availableProspects.map(p => `<button onclick="resolvePick('${p}')" class="text-left px-4 py-2.5 bg-indigo-500/5 border border-indigo-500/10 hover:bg-indigo-500/10 text-indigo-300 rounded-xl text-[10px] font-black uppercase transition-all">${p}</button>`).join('')}
+                                            ${availableProspects.map(p => `<button onclick="window.resolvePick('${p}')" class="text-left px-4 py-2.5 bg-indigo-500/5 border border-indigo-500/10 hover:bg-indigo-500/10 text-indigo-300 rounded-xl text-[10px] font-black uppercase transition-all">${p}</button>`).join('')}
                                         </div>
                                     </div>
                                 ` : ''}
@@ -413,9 +411,9 @@
                                         <div class="mb-6 space-y-2 animate-in slide-in-from-top-2">
                                             <input id="nameInput" autofocus placeholder="ENTER NAME" 
                                                    class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2 text-xs font-bold focus:ring-1 ring-indigo-500 outline-none text-white" 
-                                                   value="${me?.name || ''}"
-                                                   onkeyup="if(event.key==='Enter') updateName()">
-                                            <button onclick="updateName()" class="w-full bg-indigo-600 py-2 rounded-xl text-[10px] font-black uppercase text-white hover:bg-indigo-500 transition-all">Save Changes</button>
+                                                   value="${state.tempName || me?.name || ''}"
+                                                   onkeyup="if(event.key==='Enter') window.updateName()">
+                                            <button onclick="window.updateName()" class="w-full bg-indigo-600 py-2 rounded-xl text-[10px] font-black uppercase text-white hover:bg-indigo-500 transition-all">Save Changes</button>
                                         </div>
                                     ` : ''}
 
@@ -424,7 +422,7 @@
                                             <div class="flex justify-between items-center group">
                                                 <div class="flex items-center gap-3">
                                                     <div class="w-2.5 h-2.5 rounded-full transition-all duration-700 ${p.predictions?.[state.gameState.currentPickIndex] ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-slate-700 animate-pulse'}"></div>
-                                                    <div class="flex flex-col">
+                                                    <div class="flex flex-col text-left">
                                                         <span class="text-sm font-bold ${p.uid === state.user.uid ? 'text-indigo-400' : 'text-slate-300'}">${p.name} ${p.uid === state.user.uid ? '(You)' : ''}</span>
                                                         <span class="text-[8px] font-black text-slate-600 uppercase tracking-tighter">${p.predictions?.[state.gameState.currentPickIndex] ? 'Locked' : 'Choosing...'}</span>
                                                     </div>
@@ -435,7 +433,7 @@
                                     </div>
                                 </div>
                                 
-                                <div class="bg-indigo-600/5 border border-indigo-500/10 p-6 rounded-[2rem]">
+                                <div class="bg-indigo-600/5 border border-indigo-500/10 p-6 rounded-[2rem] text-left">
                                     <h5 class="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-2 flex items-center gap-2"><i data-lucide="info" class="w-3 h-3"></i> Lone Wolf Scoring</h5>
                                     <p class="text-[10px] text-slate-500 leading-relaxed font-medium">Points are <span class="text-indigo-300 font-bold underline">ONLY</span> awarded if exactly one person in the room guesses correctly.</p>
                                 </div>
