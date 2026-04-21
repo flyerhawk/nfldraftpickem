@@ -12,12 +12,28 @@
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #334155; }
+        
+        /* Loading Animation */
+        .loader {
+            border-top-color: #6366f1;
+            animation: spinner 1.5s linear infinite;
+        }
+        @keyframes spinner {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen">
-    <div id="root"></div>
+    <div id="root">
+        <!-- Initial Loading State (Prevents Black Screen) -->
+        <div class="flex flex-col items-center justify-center min-h-screen space-y-4">
+            <div class="loader w-12 h-12 border-4 border-slate-800 rounded-full"></div>
+            <p class="text-xs font-black uppercase tracking-[0.3em] text-slate-600 animate-pulse">Initializing Duel Engine...</p>
+        </div>
+    </div>
 
-    <!-- Firebase SDKs -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
@@ -25,9 +41,10 @@
 
         // --- STEP 1: CONFIGURE YOUR DATABASE ---
         // 1. Go to https://console.firebase.google.com
-        // 2. Create a new project.
-        // 3. Add a "Web App" to get your config object.
-        // 4. Paste your config values below:
+        // 2. Create a project and add a Web App.
+        // 3. ENABLE 'Anonymous' sign-in (Build > Auth > Sign-in method).
+        // 4. ENABLE Firestore and set rules to 'Test Mode'.
+        // For Firebase JS SDK v7.20.0 and later, measurementId is optional
         const firebaseConfig = {
           apiKey: "AIzaSyBwQiPbjSSjKRPgk7RO-6btjHeva5k7jx8",
           authDomain: "nfldraftpickem.firebaseapp.com",
@@ -37,17 +54,26 @@
           appId: "1:233571025329:web:e78fe3d5c6a991e1a2fd90",
           measurementId: "G-2M82MGXNX6"
         };
-        // Internal setup
+
+        // --- INTERNAL LOGIC ---
         let app, auth, db, currentAppId;
-        let configError = false;
-        let connectionError = null;
+        let setupStatus = "Checking Config...";
+        let setupError = null;
+
+        // Diagnostic timer
+        const timeout = setTimeout(() => {
+            if (!state.user && !setupError) {
+                setupError = "Connection Timeout: Check your internet or Firebase 'Anonymous' Auth settings.";
+                render();
+            }
+        }, 8000);
 
         try {
             const isConfigEmpty = !firebaseConfig.apiKey;
             const envConfig = window.__firebase_config ? JSON.parse(window.__firebase_config) : null;
             
             if (isConfigEmpty && !envConfig) {
-                configError = true;
+                setupError = "CONFIG_MISSING";
             } else {
                 app = initializeApp(isConfigEmpty ? envConfig : firebaseConfig);
                 auth = getAuth(app);
@@ -56,31 +82,39 @@
             }
         } catch (e) {
             console.error("Firebase Init Error:", e);
-            configError = true;
+            setupError = "Firebase Initialization Error: " + e.message;
         }
 
         const DRAFT_ORDER = [
-            { id: 1, team: "Las Vegas Raiders", needs: "QB, WR, OL" },
+            { id: 1, team: "Las Vegas Raiders", needs: "QB, WR, OT" },
             { id: 2, team: "New York Jets", needs: "QB, EDGE, WR" },
-            { id: 3, team: "Arizona Cardinals", needs: "QB, OL, EDGE" },
-            { id: 4, team: "Tennessee Titans", needs: "OL, EDGE, WR" },
-            { id: 5, team: "New York Giants", needs: "DL, OL, CB" },
-            { id: 6, team: "Cleveland Browns", needs: "QB, OL, WR" },
-            { id: 7, team: "Washington Commanders", needs: "WR, EDGE, OL" },
-            { id: 8, team: "New Orleans Saints", needs: "WR, EDGE, CB" },
-            { id: 9, team: "Kansas City Chiefs", needs: "CB, WR, EDGE" },
-            { id: 10, team: "New York Giants (via CIN)", needs: "DL, OL, CB" }
+            { id: 3, team: "Arizona Cardinals", needs: "QB, DL, EDGE" },
+            { id: 4, team: "Tennessee Titans", needs: "OT, EDGE, WR" },
+            { id: 5, team: "New York Giants", needs: "QB, DL, OT" },
+            { id: 6, team: "Cleveland Browns", needs: "QB, OT, WR" },
+            { id: 7, team: "Washington Commanders", needs: "WR, OT, CB" },
+            { id: 8, team: "New Orleans Saints", needs: "QB, WR, EDGE" },
+            { id: 9, team: "Kansas City Chiefs", needs: "CB, WR, OT" },
+            { id: 10, team: "Carolina Panthers", needs: "QB, EDGE, CB" },
+            { id: 11, team: "Miami Dolphins", needs: "OT, WR, CB" },
+            { id: 12, team: "Dallas Cowboys", needs: "EDGE, DT, LB" },
+            { id: 13, team: "LA Rams", needs: "WR, CB, LB" },
+            { id: 14, team: "Baltimore Ravens", needs: "OT, EDGE, WR" },
+            { id: 15, team: "Tampa Bay Buccaneers", needs: "EDGE, CB, OT" },
+            { id: 16, team: "Seattle Seahawks", needs: "QB, DL, LB" }
         ];
 
         const PROSPECTS = [
             "Fernando Mendoza (QB, Indiana)", "David Bailey (EDGE, Texas Tech)",
-            "Arvell Reese (LB, Ohio State)", "Mansoor Delane (CB, LSU)",
+            "Arvell Reese (LB, Ohio State)", "Mansoor Delane (CB, Virginia Tech)",
             "Jeremiyah Love (RB, Notre Dame)", "Carnell Tate (WR, Ohio State)",
             "Rueben Bain Jr. (EDGE, Miami)", "Francis Mauigoa (OT, Miami)",
-            "Sonny Styles (LB, Ohio State)", "Caleb Downs (S, Ohio State)"
+            "Sonny Styles (LB, Ohio State)", "Caleb Downs (S, Ohio State)",
+            "Makai Lemon (WR, USC)", "Kadyn Proctor (OT, Alabama)",
+            "Arch Manning (QB, Texas)", "Travis Hunter (CB/WR, Colorado)",
+            "Jackson Arnold (QB, Oklahoma)", "Kelvin Banks Jr. (OT, Texas)"
         ];
 
-        // --- STATE MANAGEMENT ---
         let state = {
             user: null,
             roomCode: localStorage.getItem('draft_room_code') || "",
@@ -97,15 +131,15 @@
             render();
         }
 
-        // --- FIREBASE LOGIC ---
         async function init() {
-            if (configError) {
+            if (setupError) {
                 render();
                 return;
             }
 
             onAuthStateChanged(auth, async (u) => {
                 if (u) {
+                    clearTimeout(timeout);
                     setState({ user: u });
                     if (state.roomCode) syncRoomData();
                 } else {
@@ -113,7 +147,7 @@
                         await signInAnonymously(auth);
                     } catch (err) {
                         console.error("Auth Error:", err);
-                        connectionError = "Authentication Failed. Please enable 'Anonymous' sign-in in the Firebase Console (Build > Authentication > Sign-in method).";
+                        setupError = "AUTH_DISABLED";
                         render();
                     }
                 }
@@ -124,60 +158,34 @@
         async function syncRoomData() {
             if (!state.user || !state.roomCode) return;
             
-            // Sync Game State
             const roomRef = doc(db, 'artifacts', currentAppId, 'public', 'data', 'rooms', state.roomCode);
             unsubRoom = onSnapshot(roomRef, (snap) => {
                 if (snap.exists()) {
                     setState({ gameState: snap.data() });
                 } else {
                     setDoc(roomRef, { currentPickIndex: 0, commishId: state.user.uid, results: [] })
-                      .catch(e => {
-                          console.error("Firestore Write Error:", e);
-                          connectionError = "Database Access Denied. Ensure Firestore Rules are set to 'allow read, write' for testing.";
-                          render();
-                      });
+                      .catch(e => { setupError = "FIRESTORE_DENIED"; render(); });
                 }
-            }, (err) => {
-                console.error("Room Sync Error:", err);
-                connectionError = "Firestore Error: " + err.message;
-                render();
-            });
+            }, (err) => { setupError = "PERMISSION_DENIED"; render(); });
 
-            // Sync Players
             const playersRef = collection(db, 'artifacts', currentAppId, 'public', 'data', 'players');
             unsubPlayers = onSnapshot(playersRef, (snap) => {
                 const players = snap.docs.map(d => d.data()).filter(p => p.roomCode === state.roomCode);
                 setState({ allPlayers: players });
                 const me = players.find(p => p.uid === state.user.uid);
                 if (me && !state.tempName) setState({ tempName: me.name });
-            }, (err) => {
-                console.error("Players Sync Error:", err);
-                connectionError = "Firestore Error: " + err.message;
-                render();
-            });
+            }, (err) => { setupError = "PERMISSION_DENIED"; render(); });
 
-            // Register me
             const myDocId = `${state.roomCode}_${state.user.uid}`;
             const myRef = doc(db, 'artifacts', currentAppId, 'public', 'data', 'players', myDocId);
             try {
                 const mySnap = await getDoc(myRef);
                 if (!mySnap.exists()) {
-                    await setDoc(myRef, { 
-                        uid: state.user.uid, 
-                        roomCode: state.roomCode, 
-                        name: `Fan ${state.user.uid.slice(0, 4)}`, 
-                        score: 0, 
-                        predictions: {} 
-                    });
+                    await setDoc(myRef, { uid: state.user.uid, roomCode: state.roomCode, name: `Fan ${state.user.uid.slice(0, 4)}`, score: 0, predictions: {} });
                 }
-            } catch (e) {
-                console.error("Registration Error:", e);
-                connectionError = "Registration Failed: " + e.message;
-                render();
-            }
+            } catch (e) { setupError = "FIRESTORE_WRITE_ERROR"; render(); }
         }
 
-        // --- ACTIONS ---
         window.createRoom = () => {
             const code = Math.random().toString(36).substring(2, 6).toUpperCase();
             localStorage.setItem('draft_room_code', code);
@@ -193,3 +201,253 @@
         };
 
         window.leaveRoom = () => {
+            if (unsubRoom) unsubRoom();
+            if (unsubPlayers) unsubPlayers();
+            localStorage.removeItem('draft_room_code');
+            setState({ roomCode: "", gameState: null, allPlayers: [] });
+        };
+
+        window.lockPick = async (pick) => {
+            if (!state.roomCode || !state.gameState) return;
+            const docId = `${state.roomCode}_${state.user.uid}`;
+            const ref = doc(db, 'artifacts', currentAppId, 'public', 'data', 'players', docId);
+            await updateDoc(ref, { [`predictions.${state.gameState.currentPickIndex}`]: pick });
+        };
+
+        window.resolvePick = async (player) => {
+            const idx = state.gameState.currentPickIndex;
+            const correctOnes = state.allPlayers.filter(p => p.predictions?.[idx] === player);
+            const isLoneWinner = correctOnes.length === 1;
+
+            if (isLoneWinner) {
+                const docId = `${state.roomCode}_${correctOnes[0].uid}`;
+                const ref = doc(db, 'artifacts', currentAppId, 'public', 'data', 'players', docId);
+                await updateDoc(ref, { score: (correctOnes[0].score || 0) + 1 });
+            }
+
+            const roomRef = doc(db, 'artifacts', currentAppId, 'public', 'data', 'rooms', state.roomCode);
+            await updateDoc(roomRef, {
+                currentPickIndex: idx + 1,
+                results: [...state.gameState.results, {
+                    pick: idx + 1,
+                    player: player,
+                    winner: isLoneWinner ? correctOnes[0].name : (correctOnes.length > 1 ? "Multiple Shared" : "None")
+                }]
+            });
+        };
+
+        function render() {
+            const root = document.getElementById('root');
+            
+            if (setupError) {
+                const errorMap = {
+                    "CONFIG_MISSING": { title: "Configuration Missing", desc: "You must paste your Firebase Config into the code.", icons: "Build > Web App" },
+                    "AUTH_DISABLED": { title: "Auth Not Enabled", desc: "Please enable 'Anonymous' Sign-in in your Firebase Console.", icons: "Build > Authentication" },
+                    "PERMISSION_DENIED": { title: "Firestore Permission Error", desc: "Database access was denied. Set your Firestore Rules to 'Test Mode'.", icons: "Build > Firestore > Rules" },
+                    "FIRESTORE_DENIED": { title: "Write Access Denied", desc: "Could not create draft room. Check Firestore Security Rules.", icons: "Build > Firestore > Rules" }
+                };
+                const err = errorMap[setupError] || { title: "Connection Error", desc: setupError, icons: "Firebase Console" };
+
+                root.innerHTML = `
+                    <div class="flex flex-col items-center justify-center min-h-screen p-6 text-center animate-in fade-in duration-500">
+                        <div class="bg-rose-500/10 border border-rose-500/20 p-8 rounded-3xl max-w-md shadow-2xl">
+                            <i data-lucide="alert-circle" class="text-rose-500 w-16 h-16 mx-auto mb-6"></i>
+                            <h1 class="text-2xl font-black text-rose-200 mb-2 uppercase italic tracking-tighter">${err.title}</h1>
+                            <p class="text-sm text-slate-400 mb-8 font-medium leading-relaxed">${err.desc}</p>
+                            <div class="bg-slate-900/50 p-4 rounded-xl text-left border border-slate-800 space-y-3">
+                                <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Required Fix:</p>
+                                <p class="text-xs font-mono text-indigo-400">Go to: ${err.icons}</p>
+                            </div>
+                            <button onclick="window.location.reload()" class="mt-8 w-full py-4 bg-slate-800 hover:bg-slate-700 rounded-2xl font-black uppercase text-xs tracking-widest transition-all">Retry Connection</button>
+                        </div>
+                    </div>
+                `;
+                lucide.createIcons();
+                return;
+            }
+
+            if (!state.user) return; // Wait for auth
+
+            if (!state.roomCode) {
+                root.innerHTML = `
+                    <div class="flex flex-col items-center justify-center min-h-screen p-6 text-center space-y-8 animate-in fade-in duration-700">
+                        <div class="bg-indigo-600 p-6 rounded-3xl shadow-2xl shadow-indigo-500/30 rotate-3">
+                            <i data-lucide="zap" class="text-white fill-white w-12 h-12"></i>
+                        </div>
+                        <div>
+                            <h1 class="text-5xl font-black italic uppercase tracking-tighter">Draft Duel <span class="text-indigo-400">2026</span></h1>
+                            <p class="text-slate-500 font-bold uppercase text-[10px] tracking-[0.3em] mt-2">Public Multiplayer Party</p>
+                        </div>
+                        <div class="w-full max-w-xs space-y-4">
+                            <button onclick="createRoom()" class="w-full bg-indigo-600 hover:bg-indigo-500 py-5 rounded-2xl font-black uppercase tracking-widest transition-all shadow-xl shadow-indigo-500/10">Create Room</button>
+                            <div class="flex gap-2">
+                                <input id="joinInput" placeholder="4-CHAR CODE" class="flex-grow bg-slate-900 border border-slate-800 rounded-2xl px-4 py-4 text-center font-mono font-bold tracking-[0.4em] outline-none focus:ring-2 ring-indigo-500 transition-all uppercase">
+                                <button onclick="joinRoom(document.getElementById('joinInput').value)" class="bg-slate-800 px-6 rounded-2xl font-black hover:bg-slate-700 transition-all"><i data-lucide="log-in" class="w-5 h-5"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                lucide.createIcons();
+                return;
+            }
+
+            const cur = DRAFT_ORDER[state.gameState?.currentPickIndex] || { team: "Draft Complete", id: "END" };
+            const me = state.allPlayers.find(p => p.uid === state.user.uid);
+            const hasPicked = me?.predictions?.[state.gameState?.currentPickIndex];
+
+            root.innerHTML = `
+                <div class="max-w-5xl mx-auto p-4 md:p-8 space-y-6">
+                    <header class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+                        <div class="flex items-center gap-4">
+                             <div class="bg-indigo-600 p-3 rounded-2xl shadow-lg shadow-indigo-500/20 rotate-3"><i data-lucide="zap" class="w-6 h-6 text-white fill-white"></i></div>
+                             <div>
+                                <h1 class="font-black uppercase italic text-xl tracking-tighter">Draft Duel <span class="text-indigo-400">2026</span></h1>
+                                <div class="flex items-center gap-3 text-[10px] text-slate-500 font-black tracking-widest">
+                                    <span class="bg-indigo-500/10 text-indigo-400 px-2 py-0.5 rounded uppercase">Lobby: ${state.roomCode}</span>
+                                    <button onclick="leaveRoom()" class="hover:text-rose-400 uppercase transition-colors">Exit Room</button>
+                                </div>
+                             </div>
+                        </div>
+                        <nav class="flex bg-slate-900 p-1.5 rounded-2xl border border-slate-800 shadow-inner">
+                            <button onclick="setState({view: 'game'})" class="px-8 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${state.view === 'game' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-200'}">Game</button>
+                            <button onclick="setState({view: 'standings'})" class="px-8 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${state.view === 'standings' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-200'}">Standings</button>
+                        </nav>
+                    </header>
+
+                    ${state.view === 'game' ? `
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                            <div class="md:col-span-2 space-y-6">
+                                <div class="bg-gradient-to-br from-slate-900 to-slate-800 border border-slate-700 p-10 rounded-[2.5rem] relative overflow-hidden shadow-2xl">
+                                    <div class="absolute -top-12 -right-12 opacity-[0.03] rotate-12"><i data-lucide="clock" class="w-64 h-64"></i></div>
+                                    <div class="relative z-10">
+                                        <div class="mb-3 inline-flex items-center gap-2 px-3 py-1 bg-indigo-500/10 border border-indigo-500/20 rounded-full text-indigo-400 text-[10px] font-black uppercase tracking-widest">
+                                            <span class="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></span> Now On The Clock
+                                        </div>
+                                        <h2 class="text-5xl font-black uppercase italic mb-2 tracking-tighter">${cur.team}</h2>
+                                        <div class="flex items-center gap-4 text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-10">
+                                            <span>Pick #${cur.id}</span>
+                                            <span class="w-1 h-1 bg-slate-700 rounded-full"></span>
+                                            <span>Needs: ${cur.needs || '---'}</span>
+                                        </div>
+
+                                        ${cur.id !== "END" ? (
+                                            hasPicked ? `
+                                                <div class="bg-emerald-500/10 border border-emerald-500/20 p-6 rounded-3xl flex items-center gap-5 animate-in slide-in-from-bottom-4">
+                                                    <div class="bg-emerald-500 p-3 rounded-full"><i data-lucide="check" class="text-white w-6 h-6"></i></div>
+                                                    <div>
+                                                        <p class="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-1">Pick Locked</p>
+                                                        <p class="font-bold text-2xl text-white tracking-tight">${hasPicked}</p>
+                                                    </div>
+                                                </div>
+                                            ` : `
+                                                <div class="space-y-4">
+                                                    <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">Select Your Prospect:</p>
+                                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6 max-h-[300px] overflow-y-auto pr-3 custom-scrollbar">
+                                                        ${PROSPECTS.map(p => `<button onclick="lockPick('${p}')" class="text-left px-5 py-4 bg-slate-800 border border-slate-700 rounded-2xl text-sm font-bold hover:border-indigo-500 hover:bg-slate-750 transition-all group flex items-center justify-between"><span>${p}</span> <i data-lucide="chevron-right" class="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity"></i></button>`).join('')}
+                                                    </div>
+                                                </div>
+                                            `
+                                        ) : `<div class="text-center font-black text-slate-700 py-12 uppercase tracking-[0.5em] text-3xl">Draft Over</div>`}
+                                    </div>
+                                </div>
+
+                                ${state.gameState?.commishId === state.user.uid && cur.id !== "END" ? `
+                                    <div class="bg-slate-900 border-2 border-dashed border-slate-800 p-8 rounded-[2rem] shadow-lg">
+                                        <div class="flex items-center justify-between mb-6">
+                                            <h3 class="text-xs font-black text-indigo-400 uppercase tracking-widest flex items-center gap-2"><i data-lucide="shield" class="w-4 h-4"></i> Commish Console</h3>
+                                            <span class="text-[10px] text-slate-600 font-bold italic uppercase tracking-tighter">Resolution triggers scoring</span>
+                                        </div>
+                                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
+                                            ${PROSPECTS.map(p => `<button onclick="resolvePick('${p}')" class="text-left px-4 py-2.5 bg-indigo-500/5 border border-indigo-500/10 hover:bg-indigo-500/10 text-indigo-300 rounded-xl text-[10px] font-black uppercase transition-all">${p}</button>`).join('')}
+                                        </div>
+                                    </div>
+                                ` : ''}
+                            </div>
+
+                            <div class="space-y-6">
+                                <div class="bg-slate-900 border border-slate-800 p-6 rounded-[2rem] shadow-xl h-fit">
+                                    <h4 class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-6 flex items-center gap-2"><i data-lucide="users" class="w-4 h-4"></i> Room Activity (${state.allPlayers.length})</h4>
+                                    <div class="space-y-4">
+                                        ${state.allPlayers.sort((a,b)=>b.score-a.score).map(p => `
+                                            <div class="flex justify-between items-center group">
+                                                <div class="flex items-center gap-3">
+                                                    <div class="w-2.5 h-2.5 rounded-full transition-all duration-700 ${p.predictions?.[state.gameState?.currentPickIndex] ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-slate-800 animate-pulse'}"></div>
+                                                    <div class="flex flex-col">
+                                                        <span class="text-sm font-bold ${p.uid === state.user.uid ? 'text-indigo-400' : 'text-slate-300'}">${p.name} ${p.uid === state.user.uid ? '(You)' : ''}</span>
+                                                        <span class="text-[8px] font-black text-slate-600 uppercase tracking-tighter">${p.predictions?.[state.gameState?.currentPickIndex] ? 'Locked' : 'Choosing...'}</span>
+                                                    </div>
+                                                </div>
+                                                <span class="font-black text-indigo-400 tabular-nums text-lg">${p.score}</span>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                                
+                                <div class="bg-indigo-600/5 border border-indigo-500/10 p-6 rounded-[2rem]">
+                                    <h5 class="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-2 flex items-center gap-2"><i data-lucide="info" class="w-3 h-3"></i> Lone Wolf Scoring</h5>
+                                    <p class="text-[10px] text-slate-500 leading-relaxed font-medium">Points are <span class="text-indigo-300">ONLY</span> awarded if you are the single person in the lobby who guessed correctly. No shared points!</p>
+                                </div>
+                            </div>
+                        </div>
+                    ` : `
+                        <div class="bg-slate-900 border border-slate-800 rounded-[2.5rem] overflow-hidden shadow-2xl animate-in slide-in-from-bottom-8">
+                             <div class="p-10 bg-gradient-to-r from-indigo-900/20 to-transparent border-b border-slate-800">
+                                <h2 class="text-4xl font-black italic uppercase tracking-tighter flex items-center gap-4"><i data-lucide="crown" class="text-yellow-500 w-10 h-10"></i> Season Standings</h2>
+                             </div>
+                             <div class="p-10 space-y-12">
+                                <table class="w-full text-left">
+                                    <thead>
+                                        <tr class="text-[10px] font-black text-slate-500 uppercase tracking-widest border-b border-slate-800 pb-4">
+                                            <th class="pb-4">Rank</th>
+                                            <th class="pb-4">Player</th>
+                                            <th class="pb-4 text-right">Draft Points</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${state.allPlayers.sort((a,b)=>b.score-a.score).map((p, i) => `
+                                            <tr class="border-b border-slate-800/30 group hover:bg-slate-800/20 transition-all">
+                                                <td class="py-6 font-black text-slate-600 italic">#${i+1}</td>
+                                                <td class="py-6 font-bold text-slate-200 text-lg">${p.name} ${i === 0 ? '🏆' : ''}</td>
+                                                <td class="py-6 text-right font-black text-3xl text-indigo-400 tabular-nums">${p.score}</td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+
+                                <div class="space-y-6">
+                                    <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] border-l-2 border-indigo-500 pl-4">History Of Picks</h4>
+                                    <div class="grid gap-4">
+                                        ${state.gameState?.results?.length === 0 ? `
+                                            <div class="py-12 text-center border-2 border-dashed border-slate-800 rounded-3xl text-slate-700 font-black uppercase tracking-widest text-[10px]">No picks resolved yet</div>
+                                        ` : state.gameState?.results?.slice().reverse().map((res, i) => `
+                                            <div class="bg-slate-950 p-6 rounded-3xl flex justify-between items-center border border-slate-800 group hover:border-slate-700 transition-all">
+                                                <div class="flex items-center gap-6">
+                                                    <div class="text-center">
+                                                        <p class="text-[8px] font-black text-slate-600 uppercase tracking-tighter">Pick</p>
+                                                        <p class="font-black text-slate-500 text-xl italic">#${res.pick}</p>
+                                                    </div>
+                                                    <div>
+                                                        <p class="text-[8px] font-black text-indigo-400 uppercase tracking-widest mb-1">Official Selection</p>
+                                                        <p class="font-bold text-slate-100 text-lg">${res.player}</p>
+                                                    </div>
+                                                </div>
+                                                <div class="text-right">
+                                                    <p class="text-[8px] font-black text-slate-600 uppercase tracking-widest mb-1">Lone Winner</p>
+                                                    <p class="text-xs font-black ${res.winner.includes('None') || res.winner.includes('Multiple') ? 'text-slate-600 italic' : 'text-emerald-400'}">${res.winner}</p>
+                                                </div>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                             </div>
+                        </div>
+                    `}
+                </div>
+            `;
+            lucide.createIcons();
+        }
+
+        init();
+    </script>
+</body>
+</html>
