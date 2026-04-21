@@ -23,8 +23,11 @@
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, setDoc, updateDoc, getDoc, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // --- REPLACE THIS WITH YOUR OWN FIREBASE CONFIG ---
-        // Get this from console.firebase.google.com
+        // --- STEP 1: CONFIGURE YOUR DATABASE ---
+        // 1. Go to https://console.firebase.google.com
+        // 2. Create a new project.
+        // 3. Add a "Web App" to get your config object.
+        // 4. Paste your config values below:
         const firebaseConfig = {
             apiKey: "", 
             authDomain: "",
@@ -34,15 +37,26 @@
             appId: ""
         };
 
-        // Internal setup (using placeholder if config is empty for preview)
+        // Internal setup
         let app, auth, db, currentAppId;
+        let configError = false;
+
         try {
-            app = initializeApp(firebaseConfig.apiKey ? firebaseConfig : JSON.parse(window.__firebase_config || '{}'));
-            auth = getAuth(app);
-            db = getFirestore(app);
-            currentAppId = window.__app_id || 'nfl-draft-duel-2026';
+            // Check if user provided config, or fallback to environment (Gemini preview only)
+            const isConfigEmpty = !firebaseConfig.apiKey;
+            const envConfig = window.__firebase_config ? JSON.parse(window.__firebase_config) : null;
+            
+            if (isConfigEmpty && !envConfig) {
+                configError = true;
+            } else {
+                app = initializeApp(isConfigEmpty ? envConfig : firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+                currentAppId = window.__app_id || 'nfl-draft-duel-2026';
+            }
         } catch (e) {
-            console.error("Firebase Init Error: Ensure you have provided a valid config.", e);
+            console.error("Firebase Init Error:", e);
+            configError = true;
         }
 
         const DRAFT_ORDER = [
@@ -85,6 +99,11 @@
 
         // --- FIREBASE LOGIC ---
         async function init() {
+            if (configError) {
+                render();
+                return;
+            }
+
             onAuthStateChanged(auth, async (u) => {
                 if (u) {
                     setState({ user: u });
@@ -98,7 +117,6 @@
         let unsubRoom, unsubPlayers;
         async function syncRoomData() {
             if (!state.user || !state.roomCode) return;
-            const fullAppId = `${currentAppId}-${state.roomCode}`;
             
             // Sync Game State
             const roomRef = doc(db, 'artifacts', currentAppId, 'public', 'data', 'rooms', state.roomCode);
@@ -188,8 +206,30 @@
         function render() {
             const root = document.getElementById('root');
             
+            // Show setup instructions if config is missing
+            if (configError) {
+                root.innerHTML = `
+                    <div class="flex flex-col items-center justify-center min-h-screen p-6 text-center space-y-6">
+                        <div class="bg-amber-500/10 border border-amber-500/20 p-8 rounded-3xl max-w-md">
+                            <i data-lucide="alert-triangle" class="text-amber-500 w-12 h-12 mx-auto mb-4"></i>
+                            <h1 class="text-xl font-bold text-amber-200 mb-2 uppercase tracking-tight">Database Setup Required</h1>
+                            <p class="text-sm text-slate-400 mb-6">To run this app on Netlify, you must provide your own Firebase configuration keys inside the code.</p>
+                            <div class="text-left bg-slate-900 p-4 rounded-xl text-xs font-mono text-slate-500 mb-4">
+                                1. Go to console.firebase.google.com<br>
+                                2. Create a Project<br>
+                                3. Copy Web Config<br>
+                                4. Paste into 'firebaseConfig' in this file
+                            </div>
+                            <p class="text-[10px] text-slate-600 uppercase font-black tracking-widest">Open the file in a text editor to update.</p>
+                        </div>
+                    </div>
+                `;
+                lucide.createIcons();
+                return;
+            }
+
             if (!state.user) {
-                root.innerHTML = `<div class="flex items-center justify-center h-screen uppercase text-xs tracking-widest font-bold">Connecting to HQ...</div>`;
+                root.innerHTML = `<div class="flex items-center justify-center h-screen uppercase text-xs tracking-widest font-bold text-slate-700 animate-pulse">Connecting to Database...</div>`;
                 return;
             }
 
