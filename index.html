@@ -52,9 +52,9 @@
         let setupError = null;
 
         const timeout = setTimeout(() => {
-            if (!state.user && !setupError) {
+            if (!window.state?.user && !setupError) {
                 setupError = "Connection Timeout: Check your internet or Firebase 'Anonymous' Auth settings.";
-                render();
+                window.render();
             }
         }, 8000);
 
@@ -127,7 +127,8 @@
             "Joenel Aguero (S, Georgia)"
         ];
 
-        let state = {
+        // GLOBAL STATE ATTACHMENT
+        window.state = {
             user: null,
             roomCode: localStorage.getItem('draft_room_code') || "",
             gameState: null,
@@ -139,13 +140,13 @@
         };
 
         window.setState = function(newState) {
-            state = { ...state, ...newState };
-            render();
+            window.state = { ...window.state, ...newState };
+            window.render();
         };
 
         async function init() {
             if (setupError) {
-                render();
+                window.render();
                 return;
             }
 
@@ -153,14 +154,14 @@
                 if (u) {
                     clearTimeout(timeout);
                     window.setState({ user: u });
-                    if (state.roomCode) syncRoomData();
+                    if (window.state.roomCode) syncRoomData();
                 } else {
                     try {
                         await signInAnonymously(auth);
                     } catch (err) {
                         console.error("Auth Error:", err);
                         setupError = "AUTH_DISABLED";
-                        render();
+                        window.render();
                     }
                 }
             });
@@ -168,37 +169,37 @@
 
         let unsubRoom, unsubPlayers;
         async function syncRoomData() {
-            if (!state.user || !state.roomCode) return;
+            if (!window.state.user || !window.state.roomCode) return;
             
-            const roomRef = doc(db, 'artifacts', currentAppId, 'public', 'data', 'rooms', state.roomCode);
+            const roomRef = doc(db, 'artifacts', currentAppId, 'public', 'data', 'rooms', window.state.roomCode);
             unsubRoom = onSnapshot(roomRef, (snap) => {
                 if (snap.exists()) {
                     window.setState({ gameState: snap.data() });
                 } else {
-                    setDoc(roomRef, { currentPickIndex: 0, commishId: state.user.uid, results: [] })
+                    setDoc(roomRef, { currentPickIndex: 0, commishId: window.state.user.uid, results: [] })
                       .then(() => {
-                        window.setState({ gameState: { currentPickIndex: 0, commishId: state.user.uid, results: [] } });
+                        window.setState({ gameState: { currentPickIndex: 0, commishId: window.state.user.uid, results: [] } });
                       })
-                      .catch(e => { setupError = "FIRESTORE_DENIED"; render(); });
+                      .catch(e => { setupError = "FIRESTORE_DENIED"; window.render(); });
                 }
-            }, (err) => { setupError = "PERMISSION_DENIED"; render(); });
+            }, (err) => { setupError = "PERMISSION_DENIED"; window.render(); });
 
             const playersRef = collection(db, 'artifacts', currentAppId, 'public', 'data', 'players');
             unsubPlayers = onSnapshot(playersRef, (snap) => {
-                const players = snap.docs.map(d => d.data()).filter(p => p.roomCode === state.roomCode);
+                const players = snap.docs.map(d => d.data()).filter(p => p.roomCode === window.state.roomCode);
                 window.setState({ allPlayers: players });
-                const me = players.find(p => p.uid === state.user.uid);
-                if (me && !state.isEditingName) window.setState({ tempName: me.name });
-            }, (err) => { setupError = "PERMISSION_DENIED"; render(); });
+                const me = players.find(p => p.uid === window.state.user.uid);
+                if (me && !window.state.isEditingName) window.setState({ tempName: me.name });
+            }, (err) => { setupError = "PERMISSION_DENIED"; window.render(); });
 
-            const myDocId = `${state.roomCode}_${state.user.uid}`;
+            const myDocId = `${window.state.roomCode}_${window.state.user.uid}`;
             const myRef = doc(db, 'artifacts', currentAppId, 'public', 'data', 'players', myDocId);
             try {
                 const mySnap = await getDoc(myRef);
                 if (!mySnap.exists()) {
-                    await setDoc(myRef, { uid: state.user.uid, roomCode: state.roomCode, name: `Fan ${state.user.uid.slice(0, 4)}`, score: 0, predictions: {} });
+                    await setDoc(myRef, { uid: window.state.user.uid, roomCode: window.state.roomCode, name: `Fan ${window.state.user.uid.slice(0, 4)}`, score: 0, predictions: {} });
                 }
-            } catch (e) { setupError = "FIRESTORE_WRITE_ERROR"; render(); }
+            } catch (e) { setupError = "FIRESTORE_WRITE_ERROR"; window.render(); }
         }
 
         window.createRoom = () => {
@@ -223,28 +224,28 @@
         };
 
         window.lockPick = async (pick) => {
-            if (!state.roomCode || !state.gameState) return;
-            const docId = `${state.roomCode}_${state.user.uid}`;
+            if (!window.state.roomCode || !window.state.gameState) return;
+            const docId = `${window.state.roomCode}_${window.state.user.uid}`;
             const ref = doc(db, 'artifacts', currentAppId, 'public', 'data', 'players', docId);
-            await updateDoc(ref, { [`predictions.${state.gameState.currentPickIndex}`]: pick });
+            await updateDoc(ref, { [`predictions.${window.state.gameState.currentPickIndex}`]: pick });
         };
 
         window.resolvePick = async (player) => {
-            const idx = state.gameState.currentPickIndex;
-            const correctOnes = state.allPlayers.filter(p => p.predictions?.[idx] === player);
+            const idx = window.state.gameState.currentPickIndex;
+            const correctOnes = window.state.allPlayers.filter(p => p.predictions?.[idx] === player);
             const isLoneWinner = correctOnes.length === 1;
 
             if (isLoneWinner) {
-                const docId = `${state.roomCode}_${correctOnes[0].uid}`;
+                const docId = `${window.state.roomCode}_${correctOnes[0].uid}`;
                 const ref = doc(db, 'artifacts', currentAppId, 'public', 'data', 'players', docId);
-                const pData = state.allPlayers.find(p => p.uid === correctOnes[0].uid);
+                const pData = window.state.allPlayers.find(p => p.uid === correctOnes[0].uid);
                 await updateDoc(ref, { score: (pData.score || 0) + 1 });
             }
 
-            const roomRef = doc(db, 'artifacts', currentAppId, 'public', 'data', 'rooms', state.roomCode);
+            const roomRef = doc(db, 'artifacts', currentAppId, 'public', 'data', 'rooms', window.state.roomCode);
             await updateDoc(roomRef, {
                 currentPickIndex: idx + 1,
-                results: [...state.gameState.results, {
+                results: [...window.state.gameState.results, {
                     pick: idx + 1,
                     player: player,
                     winner: isLoneWinner ? correctOnes[0].name : (correctOnes.length > 1 ? "Shared (0 Pts)" : "None")
@@ -256,9 +257,9 @@
         window.updateName = async () => {
             const input = document.getElementById('nameInput');
             const newName = input ? input.value.trim() : null;
-            if (!newName || !state.roomCode || !state.user) return;
+            if (!newName || !window.state.roomCode || !window.state.user) return;
             
-            const docId = `${state.roomCode}_${state.user.uid}`;
+            const docId = `${window.state.roomCode}_${window.state.user.uid}`;
             const ref = doc(db, 'artifacts', currentAppId, 'public', 'data', 'players', docId);
             
             try {
@@ -288,9 +289,9 @@
                 return;
             }
 
-            if (!state.user) return; 
+            if (!window.state.user) return; 
 
-            if (!state.roomCode) {
+            if (!window.state.roomCode) {
                 root.innerHTML = `
                     <div class="flex flex-col items-center justify-center min-h-screen p-6 text-center space-y-8 animate-in fade-in duration-700">
                         <div class="bg-indigo-600 p-6 rounded-3xl shadow-2xl shadow-indigo-500/30 rotate-3">
@@ -313,21 +314,21 @@
                 return;
             }
 
-            if (!state.gameState) {
+            if (!window.state.gameState) {
                 root.innerHTML = `
                     <div class="flex flex-col items-center justify-center min-h-screen space-y-4">
                         <div class="loader w-12 h-12 border-4 border-slate-800 rounded-full"></div>
-                        <p class="text-xs font-black uppercase tracking-[0.3em] text-slate-600 animate-pulse">Entering Room ${state.roomCode}...</p>
+                        <p class="text-xs font-black uppercase tracking-[0.3em] text-slate-600 animate-pulse">Entering Room ${window.state.roomCode}...</p>
                     </div>
                 `;
                 return;
             }
 
-            const draftedPlayers = (state.gameState.results || []).map(r => r.player);
+            const draftedPlayers = (window.state.gameState.results || []).map(r => r.player);
             const availableProspects = PROSPECTS.filter(p => !draftedPlayers.includes(p));
-            const cur = DRAFT_ORDER[state.gameState.currentPickIndex] || { team: "Draft Complete", id: "END" };
-            const me = state.allPlayers.find(p => p.uid === state.user.uid);
-            const hasPicked = me?.predictions?.[state.gameState.currentPickIndex];
+            const cur = DRAFT_ORDER[window.state.gameState.currentPickIndex] || { team: "Draft Complete", id: "END" };
+            const me = window.state.allPlayers.find(p => p.uid === window.state.user.uid);
+            const hasPicked = me?.predictions?.[window.state.gameState.currentPickIndex];
 
             root.innerHTML = `
                 <div class="max-w-5xl mx-auto p-4 md:p-8 space-y-6">
@@ -337,18 +338,18 @@
                              <div class="text-left">
                                 <h1 class="font-black uppercase italic text-xl tracking-tighter">Draft Duel <span class="text-indigo-400">2026</span></h1>
                                 <div class="flex items-center gap-3 text-[10px] text-slate-500 font-black tracking-widest">
-                                    <span class="bg-indigo-500/10 text-indigo-400 px-2 py-0.5 rounded uppercase">Lobby: ${state.roomCode}</span>
+                                    <span class="bg-indigo-500/10 text-indigo-400 px-2 py-0.5 rounded uppercase">Lobby: ${window.state.roomCode}</span>
                                     <button onclick="window.leaveRoom()" class="hover:text-rose-400 uppercase transition-colors">Exit Room</button>
                                 </div>
                              </div>
                         </div>
                         <nav class="flex bg-slate-900 p-1.5 rounded-2xl border border-slate-800 shadow-inner">
-                            <button onclick="window.setState({view: 'game'})" class="px-8 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${state.view === 'game' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-200'}">Game</button>
-                            <button onclick="window.setState({view: 'standings'})" class="px-8 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${state.view === 'standings' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-200'}">Standings</button>
+                            <button onclick="window.setState({view: 'game'})" class="px-8 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${window.state.view === 'game' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-200'}">Game</button>
+                            <button onclick="window.setState({view: 'standings'})" class="px-8 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${window.state.view === 'standings' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-200'}">Standings</button>
                         </nav>
                     </header>
 
-                    ${state.view === 'game' ? `
+                    ${window.state.view === 'game' ? `
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-8 text-left">
                             <div class="md:col-span-2 space-y-6">
                                 <div class="bg-gradient-to-br from-slate-900 to-slate-800 border border-slate-700 p-10 rounded-[2.5rem] relative overflow-hidden shadow-2xl">
@@ -385,7 +386,7 @@
                                     </div>
                                 </div>
 
-                                ${state.gameState.commishId === state.user.uid && cur.id !== "END" ? `
+                                ${window.state.gameState.commishId === window.state.user.uid && cur.id !== "END" ? `
                                     <div class="bg-slate-900 border-2 border-dashed border-slate-800 p-8 rounded-[2rem] shadow-lg">
                                         <div class="flex items-center justify-between mb-6">
                                             <h3 class="text-xs font-black text-indigo-400 uppercase tracking-widest flex items-center gap-2"><i data-lucide="shield" class="w-4 h-4"></i> Commish Console</h3>
@@ -398,33 +399,33 @@
                                 ` : ''}
                             </div>
 
-                            <div class="space-y-6">
+                            <div class="space-y-6 text-left">
                                 <div class="bg-slate-900 border border-slate-800 p-6 rounded-[2rem] shadow-xl h-fit">
                                     <div class="flex justify-between items-center mb-6">
-                                        <h4 class="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2"><i data-lucide="users" class="w-4 h-4"></i> Party (${state.allPlayers.length})</h4>
-                                        <button onclick="window.setState({isEditingName: !state.isEditingName})" class="text-[10px] text-indigo-400 font-black uppercase hover:text-indigo-300 transition-colors">
-                                            ${state.isEditingName ? 'Cancel' : 'Edit Name'}
+                                        <h4 class="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2"><i data-lucide="users" class="w-4 h-4"></i> Party (${window.state.allPlayers.length})</h4>
+                                        <button onclick="window.setState({isEditingName: !window.state.isEditingName})" class="text-[10px] text-indigo-400 font-black uppercase hover:text-indigo-300 transition-colors">
+                                            ${window.state.isEditingName ? 'Cancel' : 'Edit Name'}
                                         </button>
                                     </div>
                                     
-                                    ${state.isEditingName ? `
+                                    ${window.state.isEditingName ? `
                                         <div class="mb-6 space-y-2 animate-in slide-in-from-top-2">
                                             <input id="nameInput" autofocus placeholder="ENTER NAME" 
                                                    class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2 text-xs font-bold focus:ring-1 ring-indigo-500 outline-none text-white" 
-                                                   value="${state.tempName || me?.name || ''}"
+                                                   value="${window.state.tempName || me?.name || ''}"
                                                    onkeyup="if(event.key==='Enter') window.updateName()">
                                             <button onclick="window.updateName()" class="w-full bg-indigo-600 py-2 rounded-xl text-[10px] font-black uppercase text-white hover:bg-indigo-500 transition-all">Save Changes</button>
                                         </div>
                                     ` : ''}
 
                                     <div class="space-y-4">
-                                        ${state.allPlayers.sort((a,b)=>b.score-a.score).map(p => `
+                                        ${window.state.allPlayers.sort((a,b)=>b.score-a.score).map(p => `
                                             <div class="flex justify-between items-center group">
                                                 <div class="flex items-center gap-3">
-                                                    <div class="w-2.5 h-2.5 rounded-full transition-all duration-700 ${p.predictions?.[state.gameState.currentPickIndex] ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-slate-700 animate-pulse'}"></div>
-                                                    <div class="flex flex-col text-left">
-                                                        <span class="text-sm font-bold ${p.uid === state.user.uid ? 'text-indigo-400' : 'text-slate-300'}">${p.name} ${p.uid === state.user.uid ? '(You)' : ''}</span>
-                                                        <span class="text-[8px] font-black text-slate-600 uppercase tracking-tighter">${p.predictions?.[state.gameState.currentPickIndex] ? 'Locked' : 'Choosing...'}</span>
+                                                    <div class="w-2.5 h-2.5 rounded-full transition-all duration-700 ${p.predictions?.[window.state.gameState.currentPickIndex] ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-slate-700 animate-pulse'}"></div>
+                                                    <div class="flex flex-col">
+                                                        <span class="text-sm font-bold ${p.uid === window.state.user.uid ? 'text-indigo-400' : 'text-slate-300'}">${p.name} ${p.uid === window.state.user.uid ? '(You)' : ''}</span>
+                                                        <span class="text-[8px] font-black text-slate-600 uppercase tracking-tighter">${p.predictions?.[window.state.gameState.currentPickIndex] ? 'Locked' : 'Choosing...'}</span>
                                                     </div>
                                                 </div>
                                                 <span class="font-black text-indigo-400 tabular-nums text-lg">${p.score}</span>
@@ -433,7 +434,7 @@
                                     </div>
                                 </div>
                                 
-                                <div class="bg-indigo-600/5 border border-indigo-500/10 p-6 rounded-[2rem] text-left">
+                                <div class="bg-indigo-600/5 border border-indigo-500/10 p-6 rounded-[2rem]">
                                     <h5 class="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-2 flex items-center gap-2"><i data-lucide="info" class="w-3 h-3"></i> Lone Wolf Scoring</h5>
                                     <p class="text-[10px] text-slate-500 leading-relaxed font-medium">Points are <span class="text-indigo-300 font-bold underline">ONLY</span> awarded if exactly one person in the room guesses correctly.</p>
                                 </div>
@@ -454,7 +455,7 @@
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        ${state.allPlayers.sort((a,b)=>b.score-a.score).map((p, i) => `
+                                        ${window.state.allPlayers.sort((a,b)=>b.score-a.score).map((p, i) => `
                                             <tr class="border-b border-slate-800/30 group hover:bg-slate-800/20 transition-all text-left">
                                                 <td class="py-6 font-black text-slate-600 italic">#${i+1}</td>
                                                 <td class="py-6 font-bold text-slate-200 text-lg">${p.name} ${i === 0 ? '🏆' : ''}</td>
@@ -467,9 +468,9 @@
                                 <div class="space-y-6 text-left">
                                     <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] border-l-2 border-indigo-500 pl-4">Official Draft History</h4>
                                     <div class="grid gap-4">
-                                        ${state.gameState.results?.length === 0 ? `
+                                        ${window.state.gameState.results?.length === 0 ? `
                                             <div class="py-12 text-center border-2 border-dashed border-slate-800 rounded-3xl text-slate-700 font-black uppercase tracking-widest text-[10px]">Waiting for pick #1...</div>
-                                        ` : state.gameState.results?.slice().reverse().map((res, i) => `
+                                        ` : window.state.gameState.results?.slice().reverse().map((res, i) => `
                                             <div class="bg-slate-950 p-6 rounded-3xl flex justify-between items-center border border-slate-800 group hover:border-slate-700 transition-all">
                                                 <div class="flex items-center gap-6">
                                                     <div class="text-center">
