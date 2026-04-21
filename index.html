@@ -40,11 +40,6 @@
         import { getFirestore, doc, setDoc, updateDoc, getDoc, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // --- STEP 1: CONFIGURE YOUR DATABASE ---
-        // 1. Go to https://console.firebase.google.com
-        // 2. Create a project and add a Web App.
-        // 3. ENABLE 'Anonymous' sign-in (Build > Auth > Sign-in method).
-        // 4. ENABLE Firestore and set rules to 'Test Mode'.
-        // For Firebase JS SDK v7.20.0 and later, measurementId is optional
         // For Firebase JS SDK v7.20.0 and later, measurementId is optional
         const firebaseConfig = {
           apiKey: "AIzaSyBwQiPbjSSjKRPgk7RO-6btjHeva5k7jx8",
@@ -106,14 +101,26 @@
         ];
 
         const PROSPECTS = [
-            "Fernando Mendoza (QB, Indiana)", "David Bailey (EDGE, Texas Tech)",
-            "Arvell Reese (LB, Ohio State)", "Mansoor Delane (CB, Virginia Tech)",
-            "Jeremiyah Love (RB, Notre Dame)", "Carnell Tate (WR, Ohio State)",
-            "Rueben Bain Jr. (EDGE, Miami)", "Francis Mauigoa (OT, Miami)",
-            "Sonny Styles (LB, Ohio State)", "Caleb Downs (S, Ohio State)",
-            "Makai Lemon (WR, USC)", "Kadyn Proctor (OT, Alabama)",
-            "Arch Manning (QB, Texas)", "Travis Hunter (CB/WR, Colorado)",
-            "Jackson Arnold (QB, Oklahoma)", "Kelvin Banks Jr. (OT, Texas)"
+            "Arch Manning (QB, Texas)", "Travis Hunter (CB/WR, Colorado)", "Nico Iamaleava (QB, Tennessee)",
+            "Malaki Starks (S, Georgia)", "Will Johnson (CB, Michigan)", "Kelvin Banks Jr. (OT, Texas)",
+            "Luther Burden III (WR, Missouri)", "Caleb Downs (S, Ohio State)", "Mason Graham (DT, Michigan)",
+            "Mykel Williams (EDGE, Georgia)", "Tetairoa McMillan (WR, Arizona)", "Will Campbell (OT, LSU)",
+            "James Pearce Jr. (EDGE, Tennessee)", "Abdul Carter (LB, Penn State)", "Benjamin Morrison (CB, Notre Dame)",
+            "Harold Perkins Jr. (LB, LSU)", "Emery Jones Jr. (OT, LSU)", "Kenneth Grant (DT, Michigan)",
+            "Quinshon Judkins (RB, Ohio State)", "Colston Loveland (TE, Michigan)", "Nic Scourton (EDGE, Texas A&M)",
+            "Deone Walker (DT, Kentucky)", "Ollie Gordon II (RB, Oklahoma State)", "Tyleik Williams (DT, Ohio State)",
+            "Barrett Carter (LB, Clemson)", "Fernando Mendoza (QB, Indiana)", "David Bailey (EDGE, Texas Tech)",
+            "Arvell Reese (LB, Ohio State)", "Mansoor Delane (CB, Virginia Tech)", "Jeremiyah Love (RB, Notre Dame)",
+            "Carnell Tate (WR, Ohio State)", "Rueben Bain Jr. (EDGE, Miami)", "Francis Mauigoa (OT, Miami)",
+            "Sonny Styles (LB, Ohio State)", "Makai Lemon (WR, USC)", "Kadyn Proctor (OT, Alabama)",
+            "Jackson Arnold (QB, Oklahoma)", "Avery Johnson (QB, Kansas State)", "Conner Weigman (QB, Texas A&M)",
+            "Peter Woods (DT, Clemson)", "Princely Umanmielen (EDGE, Ole Miss)", "JT Tuimoloau (EDGE, Ohio State)",
+            "Jack Sawyer (EDGE, Ohio State)", "Donovan Jackson (IOL, Ohio State)", "Ajani Cornelius (OT, Oregon)",
+            "Josh Conerly Jr. (OT, Oregon)", "Omarion Hampton (RB, UNC)", "Oscar Delp (TE, Georgia)",
+            "Sebastian Castro (S, Iowa)", "Keldric Phulk (EDGE, Auburn)", "Akheem Mesidor (EDGE, Miami)",
+            "KC Concepcion (WR, NC State)", "Olaivavega Ioane (IOL, Penn State)", "Denzel Boston (WR, Washington)",
+            "Jordyn Tyson (WR, Arizona State)", "Spencer Fano (OT, Utah)", "Parker Brailsford (IOL, Alabama)",
+            "Tory Horton (WR, Colorado State)", "Ashton Jeanty (RB, Boise State)", "Elic Ayomanor (WR, Stanford)"
         ];
 
         let state = {
@@ -166,7 +173,6 @@
                 } else {
                     setDoc(roomRef, { currentPickIndex: 0, commishId: state.user.uid, results: [] })
                       .then(() => {
-                        // After creating, manually trigger a state update to show the room exists
                         setState({ gameState: { currentPickIndex: 0, commishId: state.user.uid, results: [] } });
                       })
                       .catch(e => { setupError = "FIRESTORE_DENIED"; render(); });
@@ -194,14 +200,14 @@
         window.createRoom = () => {
             const code = Math.random().toString(36).substring(2, 6).toUpperCase();
             localStorage.setItem('draft_room_code', code);
-            setState({ roomCode: code, gameState: null }); // Reset gameState so loader shows
+            setState({ roomCode: code, gameState: null });
             syncRoomData();
         };
 
         window.joinRoom = (code) => {
             if (!code) return;
             localStorage.setItem('draft_room_code', code.toUpperCase());
-            setState({ roomCode: code.toUpperCase(), gameState: null }); // Reset gameState so loader shows
+            setState({ roomCode: code.toUpperCase(), gameState: null });
             syncRoomData();
         };
 
@@ -227,7 +233,8 @@
             if (isLoneWinner) {
                 const docId = `${state.roomCode}_${correctOnes[0].uid}`;
                 const ref = doc(db, 'artifacts', currentAppId, 'public', 'data', 'players', docId);
-                await updateDoc(ref, { score: (correctOnes[0].score || 0) + 1 });
+                const pData = state.allPlayers.find(p => p.uid === correctOnes[0].uid);
+                await updateDoc(ref, { score: (pData.score || 0) + 1 });
             }
 
             const roomRef = doc(db, 'artifacts', currentAppId, 'public', 'data', 'rooms', state.roomCode);
@@ -239,6 +246,7 @@
                     winner: isLoneWinner ? correctOnes[0].name : (correctOnes.length > 1 ? "Multiple Shared" : "None")
                 }]
             });
+            setState({ myPrediction: "" });
         };
 
         function render() {
@@ -271,7 +279,7 @@
                 return;
             }
 
-            if (!state.user) return; // Wait for auth
+            if (!state.user) return; 
 
             if (!state.roomCode) {
                 root.innerHTML = `
@@ -296,7 +304,6 @@
                 return;
             }
 
-            // --- WAIT FOR ROOM DATA TO LOAD ---
             if (!state.gameState) {
                 root.innerHTML = `
                     <div class="flex flex-col items-center justify-center min-h-screen space-y-4">
@@ -306,6 +313,10 @@
                 `;
                 return;
             }
+
+            // Logic to hide drafted players
+            const draftedPlayers = (state.gameState.results || []).map(r => r.player);
+            const availableProspects = PROSPECTS.filter(p => !draftedPlayers.includes(p));
 
             const cur = DRAFT_ORDER[state.gameState.currentPickIndex] || { team: "Draft Complete", id: "END" };
             const me = state.allPlayers.find(p => p.uid === state.user.uid);
@@ -331,7 +342,7 @@
                     </header>
 
                     ${state.view === 'game' ? `
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-8 text-left">
                             <div class="md:col-span-2 space-y-6">
                                 <div class="bg-gradient-to-br from-slate-900 to-slate-800 border border-slate-700 p-10 rounded-[2.5rem] relative overflow-hidden shadow-2xl">
                                     <div class="absolute -top-12 -right-12 opacity-[0.03] rotate-12"><i data-lucide="clock" class="w-64 h-64"></i></div>
@@ -357,9 +368,9 @@
                                                 </div>
                                             ` : `
                                                 <div class="space-y-4">
-                                                    <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">Select Your Prospect:</p>
-                                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6 max-h-[300px] overflow-y-auto pr-3 custom-scrollbar">
-                                                        ${PROSPECTS.map(p => `<button onclick="lockPick('${p}')" class="text-left px-5 py-4 bg-slate-800 border border-slate-700 rounded-2xl text-sm font-bold hover:border-indigo-500 hover:bg-slate-750 transition-all group flex items-center justify-between"><span>${p}</span> <i data-lucide="chevron-right" class="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity"></i></button>`).join('')}
+                                                    <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">Select Your Prospect (${availableProspects.length} remaining):</p>
+                                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6 max-h-[300px] overflow-y-auto pr-3 custom-scrollbar text-left">
+                                                        ${availableProspects.map(p => `<button onclick="lockPick('${p}')" class="text-left px-5 py-4 bg-slate-800 border border-slate-700 rounded-2xl text-sm font-bold hover:border-indigo-500 hover:bg-slate-750 transition-all group flex items-center justify-between"><span>${p}</span> <i data-lucide="chevron-right" class="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity"></i></button>`).join('')}
                                                     </div>
                                                 </div>
                                             `
@@ -373,15 +384,15 @@
                                             <h3 class="text-xs font-black text-indigo-400 uppercase tracking-widest flex items-center gap-2"><i data-lucide="shield" class="w-4 h-4"></i> Commish Console</h3>
                                             <span class="text-[10px] text-slate-600 font-bold italic uppercase tracking-tighter">Resolution triggers scoring</span>
                                         </div>
-                                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
-                                            ${PROSPECTS.map(p => `<button onclick="resolvePick('${p}')" class="text-left px-4 py-2.5 bg-indigo-500/5 border border-indigo-500/10 hover:bg-indigo-500/10 text-indigo-300 rounded-xl text-[10px] font-black uppercase transition-all">${p}</button>`).join('')}
+                                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar text-left">
+                                            ${availableProspects.map(p => `<button onclick="resolvePick('${p}')" class="text-left px-4 py-2.5 bg-indigo-500/5 border border-indigo-500/10 hover:bg-indigo-500/10 text-indigo-300 rounded-xl text-[10px] font-black uppercase transition-all">${p}</button>`).join('')}
                                         </div>
                                     </div>
                                 ` : ''}
                             </div>
 
                             <div class="space-y-6">
-                                <div class="bg-slate-900 border border-slate-800 p-6 rounded-[2rem] shadow-xl h-fit">
+                                <div class="bg-slate-900 border border-slate-800 p-6 rounded-[2rem] shadow-xl h-fit text-left">
                                     <h4 class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-6 flex items-center gap-2"><i data-lucide="users" class="w-4 h-4"></i> Room Activity (${state.allPlayers.length})</h4>
                                     <div class="space-y-4">
                                         ${state.allPlayers.sort((a,b)=>b.score-a.score).map(p => `
@@ -399,7 +410,7 @@
                                     </div>
                                 </div>
                                 
-                                <div class="bg-indigo-600/5 border border-indigo-500/10 p-6 rounded-[2rem]">
+                                <div class="bg-indigo-600/5 border border-indigo-500/10 p-6 rounded-[2rem] text-left">
                                     <h5 class="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-2 flex items-center gap-2"><i data-lucide="info" class="w-3 h-3"></i> Lone Wolf Scoring</h5>
                                     <p class="text-[10px] text-slate-500 leading-relaxed font-medium">Points are <span class="text-indigo-300">ONLY</span> awarded if you are the single person in the lobby who guessed correctly. No shared points!</p>
                                 </div>
@@ -430,7 +441,7 @@
                                     </tbody>
                                 </table>
 
-                                <div class="space-y-6">
+                                <div class="space-y-6 text-left">
                                     <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] border-l-2 border-indigo-500 pl-4">History Of Picks</h4>
                                     <div class="grid gap-4">
                                         ${state.gameState.results?.length === 0 ? `
