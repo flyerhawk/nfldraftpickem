@@ -51,8 +51,8 @@
           projectId: "nfldraftpickem",
           storageBucket: "nfldraftpickem.firebasestorage.app",
           messagingSenderId: "233571025329",
-          appId: "1:233571025329:web:e78fe3d5c6a991e1a2fd90",
-          measurementId: "G-2M82MGXNX6"
+          appId: "1:233571025329:web:af5eb7f1bb9208c7a2fd90",
+          measurementId: "G-6108FZZ5GH"
         };
 
         // --- INTERNAL LOGIC ---
@@ -164,6 +164,10 @@
                     setState({ gameState: snap.data() });
                 } else {
                     setDoc(roomRef, { currentPickIndex: 0, commishId: state.user.uid, results: [] })
+                      .then(() => {
+                        // After creating, manually trigger a state update to show the room exists
+                        setState({ gameState: { currentPickIndex: 0, commishId: state.user.uid, results: [] } });
+                      })
                       .catch(e => { setupError = "FIRESTORE_DENIED"; render(); });
                 }
             }, (err) => { setupError = "PERMISSION_DENIED"; render(); });
@@ -189,14 +193,14 @@
         window.createRoom = () => {
             const code = Math.random().toString(36).substring(2, 6).toUpperCase();
             localStorage.setItem('draft_room_code', code);
-            setState({ roomCode: code });
+            setState({ roomCode: code, gameState: null }); // Reset gameState so loader shows
             syncRoomData();
         };
 
         window.joinRoom = (code) => {
             if (!code) return;
             localStorage.setItem('draft_room_code', code.toUpperCase());
-            setState({ roomCode: code.toUpperCase() });
+            setState({ roomCode: code.toUpperCase(), gameState: null }); // Reset gameState so loader shows
             syncRoomData();
         };
 
@@ -291,9 +295,20 @@
                 return;
             }
 
-            const cur = DRAFT_ORDER[state.gameState?.currentPickIndex] || { team: "Draft Complete", id: "END" };
+            // --- WAIT FOR ROOM DATA TO LOAD ---
+            if (!state.gameState) {
+                root.innerHTML = `
+                    <div class="flex flex-col items-center justify-center min-h-screen space-y-4">
+                        <div class="loader w-12 h-12 border-4 border-slate-800 rounded-full"></div>
+                        <p class="text-xs font-black uppercase tracking-[0.3em] text-slate-600 animate-pulse">Entering Room ${state.roomCode}...</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const cur = DRAFT_ORDER[state.gameState.currentPickIndex] || { team: "Draft Complete", id: "END" };
             const me = state.allPlayers.find(p => p.uid === state.user.uid);
-            const hasPicked = me?.predictions?.[state.gameState?.currentPickIndex];
+            const hasPicked = me?.predictions?.[state.gameState.currentPickIndex];
 
             root.innerHTML = `
                 <div class="max-w-5xl mx-auto p-4 md:p-8 space-y-6">
@@ -351,7 +366,7 @@
                                     </div>
                                 </div>
 
-                                ${state.gameState?.commishId === state.user.uid && cur.id !== "END" ? `
+                                ${state.gameState.commishId === state.user.uid && cur.id !== "END" ? `
                                     <div class="bg-slate-900 border-2 border-dashed border-slate-800 p-8 rounded-[2rem] shadow-lg">
                                         <div class="flex items-center justify-between mb-6">
                                             <h3 class="text-xs font-black text-indigo-400 uppercase tracking-widest flex items-center gap-2"><i data-lucide="shield" class="w-4 h-4"></i> Commish Console</h3>
@@ -371,10 +386,10 @@
                                         ${state.allPlayers.sort((a,b)=>b.score-a.score).map(p => `
                                             <div class="flex justify-between items-center group">
                                                 <div class="flex items-center gap-3">
-                                                    <div class="w-2.5 h-2.5 rounded-full transition-all duration-700 ${p.predictions?.[state.gameState?.currentPickIndex] ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-slate-800 animate-pulse'}"></div>
+                                                    <div class="w-2.5 h-2.5 rounded-full transition-all duration-700 ${p.predictions?.[state.gameState.currentPickIndex] ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-slate-700'}"></div>
                                                     <div class="flex flex-col">
                                                         <span class="text-sm font-bold ${p.uid === state.user.uid ? 'text-indigo-400' : 'text-slate-300'}">${p.name} ${p.uid === state.user.uid ? '(You)' : ''}</span>
-                                                        <span class="text-[8px] font-black text-slate-600 uppercase tracking-tighter">${p.predictions?.[state.gameState?.currentPickIndex] ? 'Locked' : 'Choosing...'}</span>
+                                                        <span class="text-[8px] font-black text-slate-600 uppercase tracking-tighter">${p.predictions?.[state.gameState.currentPickIndex] ? 'Locked' : 'Choosing...'}</span>
                                                     </div>
                                                 </div>
                                                 <span class="font-black text-indigo-400 tabular-nums text-lg">${p.score}</span>
@@ -417,9 +432,9 @@
                                 <div class="space-y-6">
                                     <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] border-l-2 border-indigo-500 pl-4">History Of Picks</h4>
                                     <div class="grid gap-4">
-                                        ${state.gameState?.results?.length === 0 ? `
+                                        ${state.gameState.results?.length === 0 ? `
                                             <div class="py-12 text-center border-2 border-dashed border-slate-800 rounded-3xl text-slate-700 font-black uppercase tracking-widest text-[10px]">No picks resolved yet</div>
-                                        ` : state.gameState?.results?.slice().reverse().map((res, i) => `
+                                        ` : state.gameState.results?.slice().reverse().map((res, i) => `
                                             <div class="bg-slate-950 p-6 rounded-3xl flex justify-between items-center border border-slate-800 group hover:border-slate-700 transition-all">
                                                 <div class="flex items-center gap-6">
                                                     <div class="text-center">
