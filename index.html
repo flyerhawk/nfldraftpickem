@@ -361,6 +361,10 @@
             const hasPicked = me?.predictions?.[window.state.gameState.currentPickIndex];
             const picksLocked = window.state.gameState.picksLocked;
             
+            // Counters
+            const submittedCount = window.state.allPlayers.filter(p => p.predictions?.[window.state.gameState.currentPickIndex]).length;
+            const totalPlayers = window.state.allPlayers.length;
+            
             const potValue = 1 + Number(window.state.gameState.carryOver || 0);
 
             root.innerHTML = `
@@ -384,20 +388,25 @@
 
                     ${window.state.view === 'game' ? `
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-8 text-left">
-                            <div class="md:col-span-2 space-y-6">
+                            <div class="md:col-span-2 space-y-6 text-left">
                                 <div class="bg-gradient-to-br from-slate-900 to-slate-800 border border-slate-700 p-10 rounded-[2.5rem] relative overflow-hidden shadow-2xl">
                                     <div class="absolute -top-12 -right-12 opacity-[0.03] rotate-12"><i data-lucide="clock" class="w-64 h-64"></i></div>
                                     <div class="relative z-10 text-left">
-                                        <div class="flex justify-between items-start mb-6">
+                                        <div class="flex flex-wrap justify-between items-start mb-6 gap-3">
                                             <div class="inline-flex items-center gap-2 px-3 py-1 bg-indigo-500/10 border border-indigo-500/20 rounded-full text-indigo-400 text-[10px] font-black uppercase tracking-widest">
                                                 <span class="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></span> Now On The Clock
                                             </div>
-                                            <div class="bg-amber-500 px-4 py-1 rounded-full text-black text-[10px] font-black uppercase tracking-widest shadow-lg shadow-amber-500/20">
-                                                Round Pot: ${potValue} Pts
+                                            <div class="flex gap-2">
+                                                <div class="bg-slate-800/80 backdrop-blur px-4 py-1 rounded-full text-slate-300 text-[10px] font-black uppercase tracking-widest border border-slate-700">
+                                                    Locked: ${submittedCount} / ${totalPlayers}
+                                                </div>
+                                                <div class="bg-amber-500 px-4 py-1 rounded-full text-black text-[10px] font-black uppercase tracking-widest shadow-lg shadow-amber-500/20">
+                                                    Pot: ${potValue} Pts
+                                                </div>
                                             </div>
                                         </div>
                                         
-                                        <h2 class="text-5xl font-black uppercase italic mb-2 tracking-tighter">${cur.team}</h2>
+                                        <h2 class="text-5xl font-black uppercase italic mb-2 tracking-tighter text-white">${cur.team}</h2>
                                         <div class="flex items-center gap-4 text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-10">
                                             <span>Pick #${cur.id}</span>
                                             <span class="w-1 h-1 bg-slate-700 rounded-full"></span>
@@ -433,7 +442,7 @@
                                                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6 max-h-[300px] overflow-y-auto pr-3 custom-scrollbar">
                                                             ${availableProspects.map(p => {
                                                                 const escapedName = p.replace(/'/g, "\\'");
-                                                                return `<button onclick="window.lockPick('${escapedName}')" class="text-left px-5 py-4 bg-slate-800 border border-slate-700 rounded-2xl text-sm font-bold hover:border-indigo-500 hover:bg-slate-750 transition-all group flex items-center justify-between"><span>${p}</span> <i data-lucide="chevron-right" class="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity"></i></button>`;
+                                                                return `<button onclick="window.lockPick('${escapedName}')" class="text-left px-5 py-4 bg-slate-800 border border-slate-700 rounded-2xl text-sm font-bold hover:border-indigo-500 hover:bg-slate-750 transition-all group flex items-center justify-between text-slate-300"><span>${p}</span> <i data-lucide="chevron-right" class="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity"></i></button>`;
                                                             }).join('')}
                                                         </div>
                                                     </div>
@@ -502,7 +511,7 @@
                                     </div>
                                 </div>
                                 
-                                <div class="bg-indigo-600/5 border border-indigo-500/10 p-6 rounded-[2rem] text-left text-left">
+                                <div class="bg-indigo-600/5 border border-indigo-500/10 p-6 rounded-[2rem] text-left">
                                     <h5 class="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-2 flex items-center gap-2"><i data-lucide="info" class="w-3 h-3"></i> Progressive Rules</h5>
                                     <p class="text-[10px] text-slate-500 leading-relaxed font-medium">Pot carries over if 0 or multiple people are correct. You can <span class="text-indigo-300 font-bold underline">change your pick</span> until the Admin locks the round!</p>
                                 </div>
