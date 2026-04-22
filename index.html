@@ -24,7 +24,7 @@
         }
     </style>
 </head>
-<body class="bg-[#001529] text-slate-100 min-h-screen text-left text-left">
+<body class="bg-[#001529] text-slate-100 min-h-screen text-left">
     <div id="root">
         <div class="flex flex-col items-center justify-center min-h-screen space-y-4">
             <div class="loader w-12 h-12 border-4 border-[#002244] rounded-full"></div>
@@ -390,7 +390,7 @@
                     <header class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
                         <div class="flex items-center gap-4">
                              <div class="bg-[#69BE28] p-3 rounded-2xl shadow-lg shadow-[#69BE28]/20 rotate-3 border-2 border-[#002244]"><i data-lucide="zap" class="w-6 h-6 text-[#002244] fill-[#002244]"></i></div>
-                             <div class="text-left text-left">
+                             <div class="text-left">
                                 <h1 class="font-black uppercase italic text-xl tracking-tighter text-white">Draft Duel <span class="text-[#69BE28]">2026</span></h1>
                                 <div class="flex items-center gap-3 text-[10px] text-[#A5ACAF] font-black tracking-widest">
                                     <span class="bg-[#69BE28]/10 text-[#69BE28] px-2 py-0.5 rounded uppercase border border-[#69BE28]/20">Lobby: ${window.state.roomCode}</span>
@@ -406,7 +406,7 @@
 
                     ${window.state.view === 'game' ? `
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-8 text-left">
-                            <div class="md:col-span-2 space-y-6 text-left">
+                            <div class="md:col-span-2 space-y-6 text-left text-left">
                                 <div class="bg-gradient-to-br from-[#002244] to-[#001529] border border-slate-700 p-10 rounded-[2.5rem] relative overflow-hidden shadow-2xl">
                                     <div class="absolute -top-12 -right-12 opacity-[0.03] rotate-12"><i data-lucide="clock" class="w-64 h-64 text-[#A5ACAF]"></i></div>
                                     <div class="relative z-10 text-left">
@@ -457,7 +457,7 @@
                                                 ` : `
                                                     <div class="space-y-4 text-left">
                                                         <p class="text-[10px] font-black text-[#A5ACAF] uppercase tracking-widest mb-4">Select Prospect (${availableProspects.length} remaining):</p>
-                                                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6 max-h-[300px] overflow-y-auto pr-3 custom-scrollbar">
+                                                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6 max-h-[300px] overflow-y-auto pr-3 custom-scrollbar text-left text-left">
                                                             ${availableProspects.map(p => {
                                                                 const escapedName = p.replace(/'/g, "\\'");
                                                                 return `<button onclick="window.lockPick('${escapedName}')" class="text-left px-5 py-4 bg-[#001529] border border-slate-700 rounded-2xl text-sm font-bold hover:border-[#69BE28] hover:bg-[#002244] transition-all group flex items-center justify-between text-slate-300"><span>${p}</span> <i data-lucide="chevron-right" class="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity"></i></button>`;
@@ -478,7 +478,7 @@
                                                 <p class="text-[8px] text-[#A5ACAF] font-bold uppercase mt-1">Lobby Management Console</p>
                                             </div>
                                             <button onclick="window.toggleLock()" 
-                                                    class="flex items-center gap-2 px-6 py-2 rounded-xl text-[10px] font-black uppercase transition-all shadow-lg ${picksLocked ? 'bg-emerald-600 text-white shadow-emerald-500/20' : 'bg-rose-600 text-white shadow-rose-500/20'}">
+                                                    class="flex items-center gap-2 px-6 py-2 rounded-xl text-[10px] font-black uppercase transition-all shadow-lg ${picksLocked ? 'bg-[#69BE28] text-[#002244] shadow-[#69BE28]/20' : 'bg-rose-600 text-white shadow-rose-500/20'}">
                                                 <i data-lucide="${picksLocked ? 'unlock' : 'lock'}" class="w-3 h-3"></i>
                                                 ${picksLocked ? 'Unlock Picks' : 'Lock All Picks'}
                                             </button>
@@ -494,7 +494,7 @@
                                 ` : ''}
                             </div>
 
-                            <div class="space-y-6 text-left">
+                            <div class="space-y-6 text-left text-left">
                                 <div class="bg-[#002244] border border-slate-700 p-6 rounded-[2rem] shadow-xl h-fit text-left">
                                     <div class="flex justify-between items-center mb-6 text-left">
                                         <h4 class="text-[10px] font-black text-[#A5ACAF] uppercase tracking-widest flex items-center gap-2"><i data-lucide="users" class="w-4 h-4"></i> Party (${window.state.allPlayers.length})</h4>
@@ -504,7 +504,7 @@
                                     </div>
                                     
                                     ${window.state.isEditingName ? `
-                                        <div class="mb-6 space-y-2 animate-in slide-in-from-top-2 text-left">
+                                        <div class="mb-6 space-y-2 animate-in slide-in-from-top-2 text-left text-left">
                                             <input id="nameInput" autofocus placeholder="ENTER NAME" 
                                                    class="w-full bg-[#001529] border border-slate-700 rounded-xl px-4 py-2 text-xs font-bold focus:ring-1 ring-[#69BE28] outline-none text-white" 
                                                    value="${window.state.tempName || me?.name || ''}"
@@ -513,19 +513,27 @@
                                         </div>
                                     ` : ''}
 
-                                    <div class="space-y-4 text-left text-left">
-                                        ${window.state.allPlayers.sort((a,b)=>b.score-a.score).map(p => `
-                                            <div class="flex justify-between items-center group text-left">
-                                                <div class="flex items-center gap-3 text-left">
-                                                    <div class="w-2.5 h-2.5 rounded-full transition-all duration-700 ${p.predictions?.[window.state.gameState.currentPickIndex] ? 'bg-[#69BE28] shadow-[0_0_8px_rgba(105,190,40,0.5)]' : 'bg-slate-700 animate-pulse'}"></div>
-                                                    <div class="flex flex-col text-left">
-                                                        <span class="text-sm font-bold ${p.uid === window.state.user.uid ? 'text-[#69BE28]' : 'text-slate-300'}">${p.name}</span>
-                                                        <span class="text-[8px] font-black text-[#A5ACAF] uppercase tracking-tighter">${p.predictions?.[window.state.gameState.currentPickIndex] ? 'Locked' : (picksLocked ? 'Frozen' : 'Choosing...')}</span>
+                                    <div class="space-y-4 text-left text-left text-left">
+                                        ${window.state.allPlayers.sort((a,b)=>b.score-a.score).map(p => {
+                                            const playerSelection = p.predictions?.[window.state.gameState.currentPickIndex];
+                                            return `
+                                                <div class="flex justify-between items-start group text-left">
+                                                    <div class="flex items-center gap-3 text-left">
+                                                        <div class="w-2.5 h-2.5 mt-1.5 rounded-full transition-all duration-700 ${playerSelection ? 'bg-[#69BE28] shadow-[0_0_8px_rgba(105,190,40,0.5)]' : 'bg-slate-700 animate-pulse'}"></div>
+                                                        <div class="flex flex-col text-left">
+                                                            <span class="text-sm font-bold ${p.uid === window.state.user.uid ? 'text-[#69BE28]' : 'text-slate-300'}">${p.name}</span>
+                                                            <div class="text-[9px] font-black uppercase tracking-tight break-words max-w-[140px]">
+                                                                ${playerSelection 
+                                                                    ? `<span class="text-[#69BE28]">${playerSelection}</span>` 
+                                                                    : `<span class="text-[#A5ACAF] italic">${picksLocked ? 'Frozen' : 'Choosing...'}</span>`
+                                                                }
+                                                            </div>
+                                                        </div>
                                                     </div>
+                                                    <span class="font-black text-[#69BE28] tabular-nums text-lg">${p.score}</span>
                                                 </div>
-                                                <span class="font-black text-[#69BE28] tabular-nums text-lg">${p.score}</span>
-                                            </div>
-                                        `).join('')}
+                                            `;
+                                        }).join('')}
                                     </div>
                                 </div>
                                 
@@ -536,7 +544,7 @@
                             </div>
                         </div>
                     ` : `
-                        <div class="bg-[#002244] border border-slate-700 rounded-[2.5rem] overflow-hidden shadow-2xl animate-in slide-in-from-bottom-8 text-left">
+                        <div class="bg-[#002244] border border-slate-700 rounded-[2.5rem] overflow-hidden shadow-2xl animate-in slide-in-from-bottom-8 text-left text-left">
                              <div class="p-10 bg-gradient-to-r from-[#69BE28]/10 to-transparent border-b border-slate-700 text-left">
                                 <h2 class="text-4xl font-black italic uppercase tracking-tighter flex items-center gap-4 text-left"><i data-lucide="crown" class="text-[#69BE28] w-10 h-10"></i> Standings</h2>
                              </div>
@@ -564,7 +572,7 @@
                                     <h4 class="text-[10px] font-black text-[#A5ACAF] uppercase tracking-[0.2em] border-l-2 border-[#69BE28] pl-4">History</h4>
                                     <div class="grid gap-4">
                                         ${results.length === 0 ? `
-                                            <div class="py-12 text-center border-2 border-dashed border-slate-800 rounded-3xl text-[#A5ACAF] font-black uppercase tracking-widest text-[10px]">Awaiting First Pick</div>
+                                            <div class="py-12 text-center border-2 border-dashed border-slate-700 rounded-3xl text-[#A5ACAF] font-black uppercase tracking-widest text-[10px]">Awaiting First Pick</div>
                                         ` : results.slice().reverse().map((res, i) => `
                                             <div class="bg-[#001529] p-6 rounded-3xl flex justify-between items-center border border-slate-700 group hover:border-[#69BE28]/30 transition-all text-left">
                                                 <div class="flex items-center gap-6 text-left">
