@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Draft Duel 2026 - Multiplayer</title>
+    <title>Draft Duel 2026 - Seattle Edition</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
@@ -11,24 +11,32 @@
         body { font-family: 'Inter', sans-serif; }
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 10px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #334155; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #4a5568; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #69BE28; }
         
         .loader {
-            border-top-color: #6366f1;
+            border-top-color: #69BE28;
             animation: spinner 1.5s linear infinite;
         }
         @keyframes spinner {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+        
+        /* Seahawks Custom Colors */
+        .bg-seahawks-navy { background-color: #002244; }
+        .bg-seahawks-green { background-color: #69BE28; }
+        .bg-seahawks-grey { background-color: #A5ACAF; }
+        .text-seahawks-green { color: #69BE28; }
+        .border-seahawks-green { border-color: #69BE28; }
+        .ring-seahawks-green { --tw-ring-color: #69BE28; }
     </style>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen text-left">
+<body class="bg-[#001529] text-slate-100 min-h-screen text-left">
     <div id="root">
         <div class="flex flex-col items-center justify-center min-h-screen space-y-4">
-            <div class="loader w-12 h-12 border-4 border-slate-800 rounded-full"></div>
-            <p class="text-xs font-black uppercase tracking-[0.3em] text-slate-600 animate-pulse">Initializing Duel Engine...</p>
+            <div class="loader w-12 h-12 border-4 border-[#002244] rounded-full"></div>
+            <p class="text-xs font-black uppercase tracking-[0.3em] text-[#A5ACAF] animate-pulse">Initializing Duel Engine...</p>
         </div>
     </div>
 
@@ -310,7 +318,7 @@
                             <i data-lucide="alert-circle" class="text-rose-500 w-16 h-16 mx-auto mb-6"></i>
                             <h1 class="text-2xl font-black text-rose-200 mb-2 uppercase italic tracking-tighter">Connection Error</h1>
                             <p class="text-sm text-slate-400 mb-8 font-medium leading-relaxed">${setupError}</p>
-                            <button onclick="window.location.reload()" class="w-full py-4 bg-slate-800 hover:bg-slate-700 rounded-2xl font-black uppercase text-xs tracking-widest transition-all">Retry Connection</button>
+                            <button onclick="window.location.reload()" class="w-full py-4 bg-[#002244] hover:bg-slate-700 rounded-2xl font-black uppercase text-xs tracking-widest transition-all">Retry Connection</button>
                         </div>
                     </div>
                 `;
@@ -323,18 +331,18 @@
             if (!window.state.roomCode) {
                 root.innerHTML = `
                     <div class="flex flex-col items-center justify-center min-h-screen p-6 text-center space-y-8 animate-in fade-in duration-700">
-                        <div class="bg-indigo-600 p-6 rounded-3xl shadow-2xl shadow-indigo-500/30 rotate-3">
-                            <i data-lucide="zap" class="text-white fill-white w-12 h-12"></i>
+                        <div class="bg-[#69BE28] p-6 rounded-3xl shadow-2xl shadow-[#69BE28]/30 rotate-3 border-4 border-[#002244]">
+                            <i data-lucide="zap" class="text-[#002244] fill-[#002244] w-12 h-12"></i>
                         </div>
                         <div>
-                            <h1 class="text-5xl font-black italic uppercase tracking-tighter">Draft Duel <span class="text-indigo-400">2026</span></h1>
-                            <p class="text-slate-500 font-bold uppercase text-[10px] tracking-[0.3em] mt-2">Public Multiplayer Party</p>
+                            <h1 class="text-5xl font-black italic uppercase tracking-tighter">Draft Duel <span class="text-[#69BE28]">2026</span></h1>
+                            <p class="text-[#A5ACAF] font-bold uppercase text-[10px] tracking-[0.3em] mt-2">Seattle Edition Multiplayer</p>
                         </div>
                         <div class="w-full max-w-xs space-y-4 text-left">
-                            <button onclick="window.createRoom()" class="w-full bg-indigo-600 hover:bg-indigo-500 py-5 rounded-2xl font-black uppercase tracking-widest transition-all shadow-xl shadow-indigo-500/10">Create Room</button>
+                            <button onclick="window.createRoom()" class="w-full bg-[#69BE28] hover:bg-[#5da823] text-[#002244] py-5 rounded-2xl font-black uppercase tracking-widest transition-all shadow-xl shadow-[#69BE28]/10">Create Room</button>
                             <div class="flex gap-2">
-                                <input id="joinInput" placeholder="4-CHAR CODE" class="flex-grow bg-slate-900 border border-slate-800 rounded-2xl px-4 py-4 text-center font-mono font-bold tracking-[0.4em] outline-none focus:ring-2 ring-indigo-500 transition-all uppercase">
-                                <button onclick="window.joinRoom(document.getElementById('joinInput').value)" class="bg-slate-800 px-6 rounded-2xl font-black hover:bg-slate-700 transition-all"><i data-lucide="log-in" class="w-5 h-5"></i></button>
+                                <input id="joinInput" placeholder="4-CHAR CODE" class="flex-grow bg-[#002244] border border-slate-700 rounded-2xl px-4 py-4 text-center font-mono font-bold tracking-[0.4em] outline-none focus:ring-2 ring-[#69BE28] transition-all uppercase text-[#69BE28]">
+                                <button onclick="window.joinRoom(document.getElementById('joinInput').value)" class="bg-[#A5ACAF] hover:bg-slate-400 px-6 rounded-2xl font-black hover:bg-slate-700 transition-all text-[#002244]"><i data-lucide="log-in" class="w-5 h-5"></i></button>
                             </div>
                         </div>
                     </div>
@@ -346,8 +354,8 @@
             if (!window.state.gameState) {
                 root.innerHTML = `
                     <div class="flex flex-col items-center justify-center min-h-screen space-y-4">
-                        <div class="loader w-12 h-12 border-4 border-slate-800 rounded-full"></div>
-                        <p class="text-xs font-black uppercase tracking-[0.3em] text-slate-600 animate-pulse">Entering Room ${window.state.roomCode}...</p>
+                        <div class="loader w-12 h-12 border-4 border-[#002244] rounded-full"></div>
+                        <p class="text-xs font-black uppercase tracking-[0.3em] text-[#A5ACAF] animate-pulse">Entering Room ${window.state.roomCode}...</p>
                     </div>
                 `;
                 return;
@@ -361,7 +369,6 @@
             const hasPicked = me?.predictions?.[window.state.gameState.currentPickIndex];
             const picksLocked = window.state.gameState.picksLocked;
             
-            // Counters
             const submittedCount = window.state.allPlayers.filter(p => p.predictions?.[window.state.gameState.currentPickIndex]).length;
             const totalPlayers = window.state.allPlayers.length;
             
@@ -371,43 +378,43 @@
                 <div class="max-w-5xl mx-auto p-4 md:p-8 space-y-6 text-left">
                     <header class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
                         <div class="flex items-center gap-4">
-                             <div class="bg-indigo-600 p-3 rounded-2xl shadow-lg shadow-indigo-500/20 rotate-3"><i data-lucide="zap" class="w-6 h-6 text-white fill-white"></i></div>
+                             <div class="bg-[#69BE28] p-3 rounded-2xl shadow-lg shadow-[#69BE28]/20 rotate-3 border-2 border-[#002244]"><i data-lucide="zap" class="w-6 h-6 text-[#002244] fill-[#002244]"></i></div>
                              <div class="text-left">
-                                <h1 class="font-black uppercase italic text-xl tracking-tighter">Draft Duel <span class="text-indigo-400">2026</span></h1>
-                                <div class="flex items-center gap-3 text-[10px] text-slate-500 font-black tracking-widest">
-                                    <span class="bg-indigo-500/10 text-indigo-400 px-2 py-0.5 rounded uppercase">Lobby: ${window.state.roomCode}</span>
+                                <h1 class="font-black uppercase italic text-xl tracking-tighter">Draft Duel <span class="text-[#69BE28]">2026</span></h1>
+                                <div class="flex items-center gap-3 text-[10px] text-[#A5ACAF] font-black tracking-widest">
+                                    <span class="bg-[#69BE28]/10 text-[#69BE28] px-2 py-0.5 rounded uppercase border border-[#69BE28]/20">Lobby: ${window.state.roomCode}</span>
                                     <button onclick="window.leaveRoom()" class="hover:text-rose-400 uppercase transition-colors">Exit Room</button>
                                 </div>
                              </div>
                         </div>
-                        <nav class="flex bg-slate-900 p-1.5 rounded-2xl border border-slate-800 shadow-inner">
-                            <button onclick="window.setState({view: 'game'})" class="px-8 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${state.view === 'game' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-200'}">Game</button>
-                            <button onclick="window.setState({view: 'standings'})" class="px-8 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${state.view === 'standings' ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-500 hover:text-slate-200'}">Standings</button>
+                        <nav class="flex bg-[#002244] p-1.5 rounded-2xl border border-slate-700 shadow-inner">
+                            <button onclick="window.setState({view: 'game'})" class="px-8 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${window.state.view === 'game' ? 'bg-[#69BE28] text-[#002244] shadow-lg' : 'text-[#A5ACAF] hover:text-white'}">Game</button>
+                            <button onclick="window.setState({view: 'standings'})" class="px-8 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${window.state.view === 'standings' ? 'bg-[#69BE28] text-[#002244] shadow-lg' : 'text-[#A5ACAF] hover:text-white'}">Standings</button>
                         </nav>
                     </header>
 
                     ${window.state.view === 'game' ? `
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-8 text-left">
                             <div class="md:col-span-2 space-y-6 text-left">
-                                <div class="bg-gradient-to-br from-slate-900 to-slate-800 border border-slate-700 p-10 rounded-[2.5rem] relative overflow-hidden shadow-2xl">
-                                    <div class="absolute -top-12 -right-12 opacity-[0.03] rotate-12"><i data-lucide="clock" class="w-64 h-64"></i></div>
+                                <div class="bg-gradient-to-br from-[#002244] to-[#001529] border border-slate-700 p-10 rounded-[2.5rem] relative overflow-hidden shadow-2xl">
+                                    <div class="absolute -top-12 -right-12 opacity-[0.03] rotate-12"><i data-lucide="clock" class="w-64 h-64 text-[#A5ACAF]"></i></div>
                                     <div class="relative z-10 text-left">
                                         <div class="flex flex-wrap justify-between items-start mb-6 gap-3">
-                                            <div class="inline-flex items-center gap-2 px-3 py-1 bg-indigo-500/10 border border-indigo-500/20 rounded-full text-indigo-400 text-[10px] font-black uppercase tracking-widest">
-                                                <span class="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></span> Now On The Clock
+                                            <div class="inline-flex items-center gap-2 px-3 py-1 bg-[#69BE28]/10 border border-[#69BE28]/20 rounded-full text-[#69BE28] text-[10px] font-black uppercase tracking-widest">
+                                                <span class="w-2 h-2 rounded-full bg-[#69BE28] animate-pulse"></span> Now On The Clock
                                             </div>
                                             <div class="flex gap-2">
-                                                <div class="bg-slate-800/80 backdrop-blur px-4 py-1 rounded-full text-slate-300 text-[10px] font-black uppercase tracking-widest border border-slate-700">
+                                                <div class="bg-[#001529]/80 backdrop-blur px-4 py-1 rounded-full text-[#A5ACAF] text-[10px] font-black uppercase tracking-widest border border-slate-700">
                                                     Locked: ${submittedCount} / ${totalPlayers}
                                                 </div>
-                                                <div class="bg-amber-500 px-4 py-1 rounded-full text-black text-[10px] font-black uppercase tracking-widest shadow-lg shadow-amber-500/20">
+                                                <div class="bg-[#69BE28] px-4 py-1 rounded-full text-[#002244] text-[10px] font-black uppercase tracking-widest shadow-lg shadow-[#69BE28]/20">
                                                     Pot: ${potValue} Pts
                                                 </div>
                                             </div>
                                         </div>
                                         
                                         <h2 class="text-5xl font-black uppercase italic mb-2 tracking-tighter text-white">${cur.team}</h2>
-                                        <div class="flex items-center gap-4 text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-10">
+                                        <div class="flex items-center gap-4 text-[10px] text-[#A5ACAF] font-bold uppercase tracking-widest mb-10">
                                             <span>Pick #${cur.id}</span>
                                             <span class="w-1 h-1 bg-slate-700 rounded-full"></span>
                                             <span>Needs: ${cur.needs || '---'}</span>
@@ -416,15 +423,15 @@
                                         ${cur.id !== "END" ? (
                                             hasPicked ? `
                                                 <div class="space-y-4 animate-in slide-in-from-bottom-4">
-                                                    <div class="bg-emerald-500/10 border border-emerald-500/20 p-6 rounded-3xl flex items-center gap-5">
-                                                        <div class="bg-emerald-500 p-3 rounded-full"><i data-lucide="check" class="text-white w-6 h-6"></i></div>
+                                                    <div class="bg-[#69BE28]/10 border border-[#69BE28]/30 p-6 rounded-3xl flex items-center gap-5">
+                                                        <div class="bg-[#69BE28] p-3 rounded-full"><i data-lucide="check" class="text-[#002244] w-6 h-6"></i></div>
                                                         <div>
-                                                            <p class="text-[10px] font-black text-emerald-500 uppercase tracking-widest mb-1">Pick Locked</p>
+                                                            <p class="text-[10px] font-black text-[#69BE28] uppercase tracking-widest mb-1">Pick Locked</p>
                                                             <p class="font-bold text-2xl text-white tracking-tight">${hasPicked}</p>
                                                         </div>
                                                     </div>
                                                     ${!picksLocked ? `
-                                                        <button onclick="window.unselectPick()" class="text-[10px] font-black uppercase text-slate-500 hover:text-indigo-400 flex items-center gap-2 transition-colors">
+                                                        <button onclick="window.unselectPick()" class="text-[10px] font-black uppercase text-[#A5ACAF] hover:text-[#69BE28] flex items-center gap-2 transition-colors">
                                                             <i data-lucide="rotate-ccw" class="w-3 h-3"></i> Change Selection
                                                         </button>
                                                     ` : ''}
@@ -438,11 +445,11 @@
                                                     </div>
                                                 ` : `
                                                     <div class="space-y-4 text-left">
-                                                        <p class="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">Select Prospect (${availableProspects.length} remaining):</p>
+                                                        <p class="text-[10px] font-black text-[#A5ACAF] uppercase tracking-widest mb-4">Select Prospect (${availableProspects.length} remaining):</p>
                                                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6 max-h-[300px] overflow-y-auto pr-3 custom-scrollbar">
                                                             ${availableProspects.map(p => {
                                                                 const escapedName = p.replace(/'/g, "\\'");
-                                                                return `<button onclick="window.lockPick('${escapedName}')" class="text-left px-5 py-4 bg-slate-800 border border-slate-700 rounded-2xl text-sm font-bold hover:border-indigo-500 hover:bg-slate-750 transition-all group flex items-center justify-between text-slate-300"><span>${p}</span> <i data-lucide="chevron-right" class="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity"></i></button>`;
+                                                                return `<button onclick="window.lockPick('${escapedName}')" class="text-left px-5 py-4 bg-[#001529] border border-slate-700 rounded-2xl text-sm font-bold hover:border-[#69BE28] hover:bg-[#002244] transition-all group flex items-center justify-between text-slate-300"><span>${p}</span> <i data-lucide="chevron-right" class="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity"></i></button>`;
                                                             }).join('')}
                                                         </div>
                                                     </div>
@@ -453,23 +460,23 @@
                                 </div>
 
                                 ${window.state.gameState.commishId === window.state.user.uid && cur.id !== "END" ? `
-                                    <div class="bg-slate-900 border-2 border-dashed border-slate-800 p-8 rounded-[2rem] shadow-lg text-left">
+                                    <div class="bg-[#002244] border-2 border-dashed border-slate-700 p-8 rounded-[2rem] shadow-lg text-left">
                                         <div class="flex justify-between items-center mb-6">
                                             <div class="flex flex-col">
-                                                <h3 class="text-xs font-black text-indigo-400 uppercase tracking-widest flex items-center gap-2"><i data-lucide="shield" class="w-4 h-4"></i> Commish Command</h3>
-                                                <p class="text-[8px] text-slate-500 font-bold uppercase mt-1">Lobby Management Console</p>
+                                                <h3 class="text-xs font-black text-[#69BE28] uppercase tracking-widest flex items-center gap-2"><i data-lucide="shield" class="w-4 h-4"></i> Commish Command</h3>
+                                                <p class="text-[8px] text-[#A5ACAF] font-bold uppercase mt-1">Lobby Management Console</p>
                                             </div>
                                             <button onclick="window.toggleLock()" 
-                                                    class="flex items-center gap-2 px-6 py-2 rounded-xl text-[10px] font-black uppercase transition-all shadow-lg ${picksLocked ? 'bg-emerald-600 text-white shadow-emerald-500/20' : 'bg-rose-600 text-white shadow-rose-500/20'}">
+                                                    class="flex items-center gap-2 px-6 py-2 rounded-xl text-[10px] font-black uppercase transition-all shadow-lg ${picksLocked ? 'bg-[#69BE28] text-[#002244] shadow-[#69BE28]/20' : 'bg-rose-600 text-white shadow-rose-500/20'}">
                                                 <i data-lucide="${picksLocked ? 'unlock' : 'lock'}" class="w-3 h-3"></i>
                                                 ${picksLocked ? 'Unlock Picks' : 'Lock All Picks'}
                                             </button>
                                         </div>
-                                        <p class="text-[10px] text-slate-400 font-bold uppercase mb-4 tracking-wide">Select official player drafted to resolve round:</p>
+                                        <p class="text-[10px] text-[#A5ACAF] font-bold uppercase mb-4 tracking-wide">Select official player drafted to resolve round:</p>
                                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar text-left">
                                             ${availableProspects.map(p => {
                                                 const escapedName = p.replace(/'/g, "\\'");
-                                                return `<button onclick="window.resolvePick('${escapedName}')" class="text-left px-4 py-2.5 bg-indigo-500/5 border border-indigo-500/10 hover:bg-indigo-500/10 text-indigo-300 rounded-xl text-[10px] font-black uppercase transition-all">${p}</button>`;
+                                                return `<button onclick="window.resolvePick('${escapedName}')" class="text-left px-4 py-2.5 bg-[#001529] border border-slate-700 hover:border-[#69BE28] hover:text-[#69BE28] text-[#A5ACAF] rounded-xl text-[10px] font-black uppercase transition-all">${p}</button>`;
                                             }).join('')}
                                         </div>
                                     </div>
@@ -477,10 +484,10 @@
                             </div>
 
                             <div class="space-y-6 text-left">
-                                <div class="bg-slate-900 border border-slate-800 p-6 rounded-[2rem] shadow-xl h-fit">
+                                <div class="bg-[#002244] border border-slate-700 p-6 rounded-[2rem] shadow-xl h-fit">
                                     <div class="flex justify-between items-center mb-6">
-                                        <h4 class="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2"><i data-lucide="users" class="w-4 h-4"></i> Party (${window.state.allPlayers.length})</h4>
-                                        <button onclick="window.setState({isEditingName: !window.state.isEditingName})" class="text-[10px] text-indigo-400 font-black uppercase hover:text-indigo-300 transition-colors">
+                                        <h4 class="text-[10px] font-black text-[#A5ACAF] uppercase tracking-widest flex items-center gap-2"><i data-lucide="users" class="w-4 h-4"></i> Party (${window.state.allPlayers.length})</h4>
+                                        <button onclick="window.setState({isEditingName: !window.state.isEditingName})" class="text-[10px] text-[#69BE28] font-black uppercase hover:text-[#5da823] transition-colors">
                                             ${window.state.isEditingName ? 'Cancel' : 'Edit Name'}
                                         </button>
                                     </div>
@@ -488,10 +495,10 @@
                                     ${window.state.isEditingName ? `
                                         <div class="mb-6 space-y-2 animate-in slide-in-from-top-2 text-left">
                                             <input id="nameInput" autofocus placeholder="ENTER NAME" 
-                                                   class="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2 text-xs font-bold focus:ring-1 ring-indigo-500 outline-none text-white" 
+                                                   class="w-full bg-[#001529] border border-slate-700 rounded-xl px-4 py-2 text-xs font-bold focus:ring-1 ring-[#69BE28] outline-none text-white" 
                                                    value="${window.state.tempName || me?.name || ''}"
                                                    onkeyup="if(event.key==='Enter') window.updateName()">
-                                            <button onclick="window.updateName()" class="w-full bg-indigo-600 py-2 rounded-xl text-[10px] font-black uppercase text-white hover:bg-indigo-500 transition-all">Save Changes</button>
+                                            <button onclick="window.updateName()" class="w-full bg-[#69BE28] text-[#002244] py-2 rounded-xl text-[10px] font-black uppercase hover:bg-[#5da823] transition-all">Save Changes</button>
                                         </div>
                                     ` : ''}
 
@@ -499,33 +506,33 @@
                                         ${window.state.allPlayers.sort((a,b)=>b.score-a.score).map(p => `
                                             <div class="flex justify-between items-center group text-left">
                                                 <div class="flex items-center gap-3 text-left">
-                                                    <div class="w-2.5 h-2.5 rounded-full transition-all duration-700 ${p.predictions?.[window.state.gameState.currentPickIndex] ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-slate-700 animate-pulse'}"></div>
+                                                    <div class="w-2.5 h-2.5 rounded-full transition-all duration-700 ${p.predictions?.[window.state.gameState.currentPickIndex] ? 'bg-[#69BE28] shadow-[0_0_8px_rgba(105,190,40,0.5)]' : 'bg-slate-700 animate-pulse'}"></div>
                                                     <div class="flex flex-col text-left">
-                                                        <span class="text-sm font-bold ${p.uid === window.state.user.uid ? 'text-indigo-400' : 'text-slate-300'}">${p.name}</span>
-                                                        <span class="text-[8px] font-black text-slate-600 uppercase tracking-tighter">${p.predictions?.[window.state.gameState.currentPickIndex] ? 'Locked' : (picksLocked ? 'Frozen' : 'Choosing...')}</span>
+                                                        <span class="text-sm font-bold ${p.uid === window.state.user.uid ? 'text-[#69BE28]' : 'text-slate-300'}">${p.name}</span>
+                                                        <span class="text-[8px] font-black text-[#A5ACAF] uppercase tracking-tighter">${p.predictions?.[window.state.gameState.currentPickIndex] ? 'Locked' : (picksLocked ? 'Frozen' : 'Choosing...')}</span>
                                                     </div>
                                                 </div>
-                                                <span class="font-black text-indigo-400 tabular-nums text-lg">${p.score}</span>
+                                                <span class="font-black text-[#69BE28] tabular-nums text-lg">${p.score}</span>
                                             </div>
                                         `).join('')}
                                     </div>
                                 </div>
                                 
-                                <div class="bg-indigo-600/5 border border-indigo-500/10 p-6 rounded-[2rem] text-left">
-                                    <h5 class="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-2 flex items-center gap-2"><i data-lucide="info" class="w-3 h-3"></i> Progressive Rules</h5>
-                                    <p class="text-[10px] text-slate-500 leading-relaxed font-medium">Pot carries over if 0 or multiple people are correct. You can <span class="text-indigo-300 font-bold underline">change your pick</span> until the Admin locks the round!</p>
+                                <div class="bg-[#69BE28]/5 border border-[#69BE28]/10 p-6 rounded-[2rem] text-left">
+                                    <h5 class="text-[10px] font-black text-[#69BE28] uppercase tracking-widest mb-2 flex items-center gap-2"><i data-lucide="info" class="w-3 h-3"></i> Progressive Rules</h5>
+                                    <p class="text-[10px] text-[#A5ACAF] leading-relaxed font-medium">Pot carries over if 0 or multiple people are correct. You can <span class="text-[#69BE28] font-bold underline">change your pick</span> until the Admin locks the round!</p>
                                 </div>
                             </div>
                         </div>
                     ` : `
-                        <div class="bg-slate-900 border border-slate-800 rounded-[2.5rem] overflow-hidden shadow-2xl animate-in slide-in-from-bottom-8 text-left">
-                             <div class="p-10 bg-gradient-to-r from-indigo-900/20 to-transparent border-b border-slate-800 text-left">
-                                <h2 class="text-4xl font-black italic uppercase tracking-tighter flex items-center gap-4 text-left"><i data-lucide="crown" class="text-yellow-500 w-10 h-10"></i> Standings</h2>
+                        <div class="bg-[#002244] border border-slate-700 rounded-[2.5rem] overflow-hidden shadow-2xl animate-in slide-in-from-bottom-8 text-left">
+                             <div class="p-10 bg-gradient-to-r from-[#69BE28]/10 to-transparent border-b border-slate-700 text-left">
+                                <h2 class="text-4xl font-black italic uppercase tracking-tighter flex items-center gap-4 text-left"><i data-lucide="crown" class="text-[#69BE28] w-10 h-10"></i> Standings</h2>
                              </div>
                              <div class="p-10 space-y-12 text-left">
                                 <table class="w-full text-left">
                                     <thead>
-                                        <tr class="text-[10px] font-black text-slate-500 uppercase tracking-widest border-b border-slate-800 pb-4 text-left">
+                                        <tr class="text-[10px] font-black text-[#A5ACAF] uppercase tracking-widest border-b border-slate-700 pb-4 text-left">
                                             <th class="pb-4">Rank</th>
                                             <th class="pb-4">Player</th>
                                             <th class="pb-4 text-right">Points</th>
@@ -533,35 +540,35 @@
                                     </thead>
                                     <tbody>
                                         ${window.state.allPlayers.sort((a,b)=>b.score-a.score).map((p, i) => `
-                                            <tr class="border-b border-slate-800/30 group hover:bg-slate-800/20 transition-all text-left">
-                                                <td class="py-6 font-black text-slate-600 italic">#${i+1}</td>
+                                            <tr class="border-b border-slate-700/30 group hover:bg-[#001529] transition-all text-left">
+                                                <td class="py-6 font-black text-[#A5ACAF] italic">#${i+1}</td>
                                                 <td class="py-6 font-bold text-slate-200 text-lg">${p.name} ${i === 0 ? '🏆' : ''}</td>
-                                                <td class="py-6 text-right font-black text-3xl text-indigo-400 tabular-nums">${p.score}</td>
+                                                <td class="py-6 text-right font-black text-3xl text-[#69BE28] tabular-nums">${p.score}</td>
                                             </tr>
                                         `).join('')}
                                     </tbody>
                                 </table>
 
                                 <div class="space-y-6 text-left">
-                                    <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] border-l-2 border-indigo-500 pl-4">History</h4>
+                                    <h4 class="text-[10px] font-black text-[#A5ACAF] uppercase tracking-[0.2em] border-l-2 border-[#69BE28] pl-4">History</h4>
                                     <div class="grid gap-4">
                                         ${results.length === 0 ? `
-                                            <div class="py-12 text-center border-2 border-dashed border-slate-800 rounded-3xl text-slate-700 font-black uppercase tracking-widest text-[10px]">Awaiting First Pick</div>
+                                            <div class="py-12 text-center border-2 border-dashed border-slate-700 rounded-3xl text-[#A5ACAF] font-black uppercase tracking-widest text-[10px]">Awaiting First Pick</div>
                                         ` : results.slice().reverse().map((res, i) => `
-                                            <div class="bg-slate-950 p-6 rounded-3xl flex justify-between items-center border border-slate-800 group hover:border-slate-700 transition-all">
+                                            <div class="bg-[#001529] p-6 rounded-3xl flex justify-between items-center border border-slate-700 group hover:border-[#69BE28]/30 transition-all">
                                                 <div class="flex items-center gap-6 text-left">
                                                     <div class="text-center">
-                                                        <p class="text-[8px] font-black text-slate-600 uppercase tracking-tighter">Pick</p>
-                                                        <p class="font-black text-slate-500 text-xl italic">#${res.pick}</p>
+                                                        <p class="text-[8px] font-black text-[#A5ACAF] uppercase tracking-tighter">Pick</p>
+                                                        <p class="font-black text-[#A5ACAF] text-xl italic">#${res.pick}</p>
                                                     </div>
                                                     <div class="text-left">
-                                                        <p class="text-[8px] font-black text-indigo-400 uppercase tracking-widest mb-1">Official Selection</p>
+                                                        <p class="text-[8px] font-black text-[#69BE28] uppercase tracking-widest mb-1">Official Selection</p>
                                                         <p class="font-bold text-slate-100 text-lg">${res.player}</p>
                                                     </div>
                                                 </div>
                                                 <div class="text-right">
-                                                    <p class="text-[8px] font-black text-slate-600 uppercase tracking-widest mb-1">Pot: ${res.ptsValue || 1} Pts</p>
-                                                    <p class="text-xs font-black ${res.wasLone ? 'text-emerald-400' : 'text-slate-600 italic'}">${res.winner}</p>
+                                                    <p class="text-[8px] font-black text-[#A5ACAF] uppercase tracking-widest mb-1">Pot: ${res.ptsValue || 1} Pts</p>
+                                                    <p class="text-xs font-black ${res.wasLone ? 'text-[#69BE28]' : 'text-slate-500 italic'}">${res.winner}</p>
                                                 </div>
                                             </div>
                                         `).join('')}
